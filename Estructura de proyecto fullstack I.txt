@@ -1,0 +1,912 @@
+GITHUB PROFE:
+https://github.com/munozmoranicolasprofesor/biblioteca.salas.duoc/blob/master/src/test/java/biblioteca/salas/duoc/biblioteca/salas/duoc/service/CarreraServiceTest.java
+
+
+/*estructura del proyecto
+
+product-service/
+└── src/
+    └── main/
+        └── java/
+            └── com/
+                └── ecomarket/
+                    └── productservice/
+                        ├── controller/
+                        ├── service/
+                        ├── repository/
+                        └── model/
+*/
+
+//Las siguientes son las clases que van dentro de cada package
+
+//.../model/Producto.java
+package com.ecomarket.productservice.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "producto")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Producto {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer productoId;
+
+    @Column(name = "nombre_producto")
+    private String nombreProducto;
+
+    @Column(name = "codigo_sku")
+    private String codigoSKU;
+
+    @Column(name = "precio_unitario")
+    private Double precioUnitario;
+
+    @Column(name = "precio_compra")
+    private Double precioCompra;
+
+    @Column(name = "margen_ganancia")
+    private Double margenGanancia;
+
+    private String descripcion;
+
+    @Column(name = "categoria_id")
+    private Integer categoriaId;
+
+    @Column(name = "proveedor_principal_id")
+    private Integer proveedorPrincipalId;
+
+    @Column(name = "es_ecologico")
+    private Boolean esEcologico;
+
+    @Column(name = "fecha_registro")
+    private String fechaRegistro;
+
+    private String estado;
+    
+
+}
+
+// …/repository/ProductRepository.java
+
+
+package com.ecomarket.productservice.repository;
+
+import com.ecomarket.productservice.model.Producto;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface ProductRepository extends JpaRepository<Producto, Integer> {
+    
+    Optional<Producto> findByCodigoSKU(String codigoSKU);
+    
+    List<Producto> findByEsEcologico(Boolean esEcologico);
+    
+    List<Producto> findByCategoriaId(Long categoriaId);
+    
+    List<Producto> findByEstado(String estado);
+    
+    List<Producto> findByProveedorPrincipalId(Long proveedorPrincipalId);
+    
+    List<Producto> findByPrecioUnitarioBetween(Double precioMin, Double precioMax);
+    
+    boolean existsByCodigoSKU(String codigoSKU);
+}
+
+
+
+
+// …/service/ProductoService.java
+package com.ecomarket.productservice.service;
+
+import com.ecomarket.productservice.model.Producto;
+import com.ecomarket.productservice.repository.ProductRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ProductoService {
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    // Obtener todos los productos
+    public List<Producto> obtenerTodos() {
+        return productRepository.findAll();
+    }
+
+    // Buscar producto por ID
+    public Producto buscarPorId(Integer id) {
+        Optional<Producto> producto = productRepository.findById(id);
+        return producto.orElse(null);
+    }
+
+    // Buscar producto por SKU
+    public Producto buscarPorSKU(String sku) {
+        Optional<Producto> producto = productRepository.findByCodigoSKU(sku);
+        return producto.orElse(null);
+    }
+
+    // Guardar producto
+    public Producto guardar(Producto producto) {
+        return productRepository.save(producto);
+    }
+
+    // Actualizar producto
+    public Producto actualizar(Integer id, Producto productoActualizado) {
+        if (productRepository.existsById(id)) {
+            productoActualizado.setProductoId(id); // Aseguramos que se actualice el existente
+            return productRepository.save(productoActualizado);
+        }
+        return null;
+    }
+
+    // Eliminar producto
+    public boolean eliminar(Integer id) {
+        if (productRepository.existsById(id)) {
+            productRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    // Total de productos
+    public int totalProductos() {
+        return (int) productRepository.count();
+    }
+
+    // Productos ecológicos
+    public List<Producto> obtenerProductosEcologicos() {
+        return productRepository.findByEsEcologico(true);
+    }
+
+    // Productos por categoría
+    public List<Producto> obtenerPorCategoria(Integer categoriaId) {
+        return productRepository.findByCategoriaId(categoriaId.longValue());
+    }
+}
+
+
+
+
+// …/controller/ProductoController.java
+package com.ecomarket.productservice.controller;
+
+import com.ecomarket.productservice.model.Producto;
+import com.ecomarket.productservice.service.ProductoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/productos")
+public class ProductoController {
+    
+    @Autowired
+    private ProductoService productoService;
+    
+    // Obtener todos los productos
+    @GetMapping
+    public ResponseEntity<List<Producto>> obtenerTodos() {
+        List<Producto> productos = productoService.obtenerTodos();
+        return ResponseEntity.ok(productos);
+    }
+    
+    // Obtener producto por ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Producto> obtenerPorId(@PathVariable Integer id) {
+        Producto producto = productoService.buscarPorId(id);
+        if (producto != null) {
+            return ResponseEntity.ok(producto);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Buscar producto por SKU
+    @GetMapping("/sku/{sku}")
+    public ResponseEntity<Producto> obtenerPorSKU(@PathVariable String sku) {
+        Producto producto = productoService.buscarPorSKU(sku);
+        if (producto != null) {
+            return ResponseEntity.ok(producto);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Crear nuevo producto
+    @PostMapping
+    public ResponseEntity<Producto> crear(@RequestBody Producto producto) {
+        Producto nuevoProducto = productoService.guardar(producto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoProducto);
+    }
+    
+    // Actualizar producto
+    @PutMapping("/{id}")
+    public ResponseEntity<Producto> actualizar(@PathVariable Integer id, @RequestBody Producto producto) {
+        Producto productoActualizado = productoService.actualizar(id, producto);
+        if (productoActualizado != null) {
+            return ResponseEntity.ok(productoActualizado);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Eliminar producto
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        boolean eliminado = productoService.eliminar(id);
+        if (eliminado) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Endpoints adicionales
+    
+    // Total de productos
+    @GetMapping("/total")
+    public ResponseEntity<Integer> totalProductos() {
+        int total = productoService.totalProductos();
+        return ResponseEntity.ok(total);
+    }
+    
+    // Productos ecológicos
+    @GetMapping("/ecologicos")
+    public ResponseEntity<List<Producto>> obtenerProductosEcologicos() {
+        List<Producto> ecologicos = productoService.obtenerProductosEcologicos();
+        return ResponseEntity.ok(ecologicos);
+    }
+    
+    // Productos por categoría
+    @GetMapping("/categoria/{categoriaId}")
+    public ResponseEntity<List<Producto>> obtenerPorCategoria(@PathVariable Integer categoriaId) {
+        List<Producto> productos = productoService.obtenerPorCategoria(categoriaId);
+        return ResponseEntity.ok(productos);
+    }
+}
+
+//main
+
+package com.ecomarket.productservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ProductServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ProductServiceApplication.class, args);
+	}
+
+}
+
+
+// application.properties
+
+spring.application.name=product-service
+server.port=8090
+# Modificar la propiedad para que las tablas se creen antes de ejecutar data.sql
+spring.jpa.defer-datasource-initialization=true
+# Configuración de la base de datos H2
+#spring.datasource.url=jdbc:h2:mem:productdb;DB_CLOSE_DELAY=-1
+#spring.datasource.driverClassName=org.h2.Driver
+#spring.datasource.username=sa
+#spring.datasource.password=
+#spring.h2.console.enabled=true
+#spring.h2.console.path=/h2-console
+
+# Importante: Asegurémonos que las tablas se creen antes de ejecutar data.sql
+spring.sql.init.mode=always
+
+#####################################
+spring.datasource.url=jdbc:mysql://localhost:3306/db_product_service
+spring.datasource.username=root
+spring.datasource.password=
+
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+
+
+// data.sql
+
+-- Insertamos productos sin caracteres especiales
+INSERT INTO producto (
+    codigo_sku, 
+    nombre_producto, 
+    descripcion, 
+    precio_unitario, 
+    precio_compra, 
+    margen_ganancia, 
+    es_ecologico, 
+    categoria_id, 
+    proveedor_principal_id, 
+    fecha_registro, 
+    estado
+)
+VALUES 
+('ECO-001', 'Jabon organico de lavanda', 'Jabon 100% natural elaborado con aceites esenciales de lavanda.', 5.99, 2.50, 0.58, true, 1, 1, CURRENT_TIMESTAMP, 'ACTIVE'),
+('ECO-002', 'Champu solido de coco', 'Champu en barra sin plastico, ideal para cabello seco.', 8.50, 3.20, 0.62, true, 1, 1, CURRENT_TIMESTAMP, 'ACTIVE'),
+('ECO-003', 'Cepillo de dientes de bambu', 'Cepillo de dientes biodegradable con mango de bambu.', 4.95, 1.80, 0.64, true, 2, 2, CURRENT_TIMESTAMP, 'ACTIVE'),
+('ECO-004', 'Bolsa reutilizable de algodon', 'Bolsa de compras resistente hecha de algodon organico.', 3.50, 1.20, 0.66, true, 3, 3, CURRENT_TIMESTAMP, 'ACTIVE'),
+('ECO-005', 'Pajitas de acero inoxidable', 'Set de 4 pajitas reutilizables con cepillo de limpieza.', 9.99, 4.00, 0.60, true, 2, 2, CURRENT_TIMESTAMP, 'ACTIVE');
+
+//pom.xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.4.5</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.ecomarket</groupId>
+	<artifactId>product-service</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>product-service</name>
+	<description>Microservicio para gestión de productos ecológicos de EcoMarket SPA</description>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>17</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+
+
+
+
+//micrioservicio de usuarios
+//Estructura del proyecto:
+
+user-service/
+└── src/
+    └── main/
+        └── java/
+            └── com/
+                └── ecomarket/
+                    └── userservice/
+                        ├── controller/
+                        ├── service/
+                        ├── repository/
+                        └── model/
+
+
+// .../model/Usuario.java
+package com.ecomarket.userservice.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "usuario")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Usuario {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer usuarioId;
+
+    @Column(name = "nombre_usuario")
+    private String nombreUsuario;
+
+    private String apellido;
+
+    @Column(name = "correo_usuario", unique = true)
+    private String correoUsuario;
+
+    private String contraseña;
+
+    @Column(name = "rol_id")
+    private Integer rolId;
+
+    @Column(name = "tienda_id")
+    private Integer tiendaId;
+
+    @Column(name = "fecha_registro")
+    private String fechaRegistro;
+
+    private String estado;
+
+    @Column(name = "ultimo_acceso")
+    private String ultimoAcceso;
+}
+
+// .../repository/UsuarioRepository.java
+package com.ecomarket.userservice.repository;
+
+import com.ecomarket.userservice.model.Usuario;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+    
+    Optional<Usuario> findByCorreoUsuario(String correoUsuario);
+    
+    List<Usuario> findByRolId(Integer rolId);
+    
+    List<Usuario> findByTiendaId(Integer tiendaId);
+    
+    List<Usuario> findByEstado(String estado);
+    
+    boolean existsByCorreoUsuario(String correoUsuario);
+    
+    List<Usuario> findByNombreUsuarioContainingIgnoreCase(String nombreUsuario);
+}
+
+// .../service/UsuarioService.java
+package com.ecomarket.userservice.service;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UsuarioService {
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    // Obtener todos los usuarios
+    public List<Usuario> obtenerTodos() {
+        return usuarioRepository.findAll();
+    }
+
+    // Buscar usuario por ID
+    public Usuario buscarPorId(Integer id) {
+        Optional<Usuario> usuario = usuarioRepository.findById(id);
+        return usuario.orElse(null);
+    }
+
+    // Buscar usuario por correo
+    public Usuario buscarPorCorreo(String correo) {
+        Optional<Usuario> usuario = usuarioRepository.findByCorreoUsuario(correo);
+        return usuario.orElse(null);
+    }
+
+    // Guardar usuario
+    public Usuario guardar(Usuario usuario) {
+        return usuarioRepository.save(usuario);
+    }
+
+    // Actualizar usuario
+    public Usuario actualizar(Integer id, Usuario usuarioActualizado) {
+        if (usuarioRepository.existsById(id)) {
+            usuarioActualizado.setUsuarioId(id);
+            return usuarioRepository.save(usuarioActualizado);
+        }
+        return null;
+    }
+
+    // Eliminar usuario
+    public boolean eliminar(Integer id) {
+        if (usuarioRepository.existsById(id)) {
+            usuarioRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    // Total de usuarios
+    public int totalUsuarios() {
+        return (int) usuarioRepository.count();
+    }
+
+    // Usuarios por rol
+    public List<Usuario> obtenerPorRol(Integer rolId) {
+        return usuarioRepository.findByRolId(rolId);
+    }
+
+    // Usuarios por tienda
+    public List<Usuario> obtenerPorTienda(Integer tiendaId) {
+        return usuarioRepository.findByTiendaId(tiendaId);
+    }
+
+    // Usuarios activos
+    public List<Usuario> obtenerUsuariosActivos() {
+        return usuarioRepository.findByEstado("ACTIVO");
+    }
+
+    // Buscar usuarios por nombre
+    public List<Usuario> buscarPorNombre(String nombre) {
+        return usuarioRepository.findByNombreUsuarioContainingIgnoreCase(nombre);
+    }
+}
+
+// .../controller/UsuarioController.java
+package com.ecomarket.userservice.controller;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.service.UsuarioService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/usuarios")
+public class UsuarioController {
+    
+    @Autowired
+    private UsuarioService usuarioService;
+    
+    // Obtener todos los usuarios
+    @GetMapping
+    public ResponseEntity<List<Usuario>> obtenerTodos() {
+        List<Usuario> usuarios = usuarioService.obtenerTodos();
+        return ResponseEntity.ok(usuarios);
+    }
+    
+    // Obtener usuario por ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Usuario> obtenerPorId(@PathVariable Integer id) {
+        Usuario usuario = usuarioService.buscarPorId(id);
+        if (usuario != null) {
+            return ResponseEntity.ok(usuario);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Buscar usuario por correo
+    @GetMapping("/correo/{correo}")
+    public ResponseEntity<Usuario> obtenerPorCorreo(@PathVariable String correo) {
+        Usuario usuario = usuarioService.buscarPorCorreo(correo);
+        if (usuario != null) {
+            return ResponseEntity.ok(usuario);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Crear nuevo usuario
+    @PostMapping
+    public ResponseEntity<Usuario> crear(@RequestBody Usuario usuario) {
+        Usuario nuevoUsuario = usuarioService.guardar(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoUsuario);
+    }
+    
+    // Actualizar usuario
+    @PutMapping("/{id}")
+    public ResponseEntity<Usuario> actualizar(@PathVariable Integer id, @RequestBody Usuario usuario) {
+        Usuario usuarioActualizado = usuarioService.actualizar(id, usuario);
+        if (usuarioActualizado != null) {
+            return ResponseEntity.ok(usuarioActualizado);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Eliminar usuario
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        boolean eliminado = usuarioService.eliminar(id);
+        if (eliminado) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // Endpoints adicionales
+    
+    // Total de usuarios
+    @GetMapping("/total")
+    public ResponseEntity<Integer> totalUsuarios() {
+        int total = usuarioService.totalUsuarios();
+        return ResponseEntity.ok(total);
+    }
+    
+    // Usuarios por rol
+    @GetMapping("/rol/{rolId}")
+    public ResponseEntity<List<Usuario>> obtenerPorRol(@PathVariable Integer rolId) {
+        List<Usuario> usuarios = usuarioService.obtenerPorRol(rolId);
+        return ResponseEntity.ok(usuarios);
+    }
+    
+    // Usuarios por tienda
+    @GetMapping("/tienda/{tiendaId}")
+    public ResponseEntity<List<Usuario>> obtenerPorTienda(@PathVariable Integer tiendaId) {
+        List<Usuario> usuarios = usuarioService.obtenerPorTienda(tiendaId);
+        return ResponseEntity.ok(usuarios);
+    }
+    
+    // Usuarios activos
+    @GetMapping("/activos")
+    public ResponseEntity<List<Usuario>> obtenerUsuariosActivos() {
+        List<Usuario> usuarios = usuarioService.obtenerUsuariosActivos();
+        return ResponseEntity.ok(usuarios);
+    }
+    
+    // Buscar usuarios por nombre
+    @GetMapping("/buscar/{nombre}")
+    public ResponseEntity<List<Usuario>> buscarPorNombre(@PathVariable String nombre) {
+        List<Usuario> usuarios = usuarioService.buscarPorNombre(nombre);
+        return ResponseEntity.ok(usuarios);
+    }
+}
+
+# application.properties para user-service
+
+spring.application.name=user-service
+server.port=8091
+
+# Configuración para crear tablas antes de ejecutar data.sql
+spring.jpa.defer-datasource-initialization=true
+spring.sql.init.mode=always
+
+# Configuración MySQL
+spring.datasource.url=jdbc:mysql://localhost:3306/db_user_service
+spring.datasource.username=root
+spring.datasource.password=
+
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+-- data.sql para user-service
+
+-- Insertamos usuarios iniciales
+INSERT INTO usuario (
+    nombre_usuario, 
+    apellido, 
+    correo_usuario, 
+    contraseña, 
+    rol_id, 
+    tienda_id, 
+    fecha_registro, 
+    estado, 
+    ultimo_acceso
+)
+VALUES 
+('Juan', 'Perez', 'juan.perez@ecomarket.cl', 'password123', 1, 1, CURRENT_TIMESTAMP, 'ACTIVO', CURRENT_TIMESTAMP),
+('Maria', 'Garcia', 'maria.garcia@ecomarket.cl', 'password123', 2, 1, CURRENT_TIMESTAMP, 'ACTIVO', CURRENT_TIMESTAMP),
+('Carlos', 'Rodriguez', 'carlos.rodriguez@ecomarket.cl', 'password123', 3, 1, CURRENT_TIMESTAMP, 'ACTIVO', CURRENT_TIMESTAMP),
+('Ana', 'Martinez', 'ana.martinez@ecomarket.cl', 'password123', 2, 2, CURRENT_TIMESTAMP, 'ACTIVO', CURRENT_TIMESTAMP),
+('Pedro', 'Lopez', 'pedro.lopez@ecomarket.cl', 'password123', 4, 1, CURRENT_TIMESTAMP, 'ACTIVO', CURRENT_TIMESTAMP);
+
+// UserServiceApplication.java
+package com.ecomarket.userservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class UserServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(UserServiceApplication.class, args);
+    }
+
+}
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.5</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.ecomarket</groupId>
+    <artifactId>user-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>user-service</name>
+    <description>Microservicio para gestión de usuarios de EcoMarket SPA</description>
+    <url/>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection/>
+        <tag/>
+        <url/>
+    </scm>
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
+

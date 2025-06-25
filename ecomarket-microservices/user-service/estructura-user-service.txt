@@ -1,0 +1,460 @@
+user-service/
+├── HELP.md
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/ecomarket/userservice/
+│   │   │       ├── assemblers/
+│   │   │       │   └── UsuarioModelAssembler.java
+│   │   │       ├── config/
+│   │   │       │   ├── DataLoader.java
+│   │   │       │   └── SwaggerConfig.java
+│   │   │       ├── controller/
+│   │   │       │   ├── UsuarioController.java
+│   │   │       │   └── UsuarioControllerV2.java
+│   │   │       ├── model/
+│   │   │       │   └── Usuario.java
+│   │   │       ├── reporistory/
+│   │   │       │   └── UsuarioRepository.java
+│   │   │       ├── service/
+│   │   │       │   └── UsuarioService.java
+│   │   │       └── UserServiceApplication.java
+│   │   └── resources/
+│   │       ├── application-dev.properties
+│   │       ├── application-test.properties
+│   │       └── application.properties
+│   └── test/
+│       └── java/
+│           └── com/ecomarket/userservice/
+│               └── UserServiceApplicationTests.java
+└── target/
+
+user-service/src/main/java/com/ecomarket/userservice/controller/UsuarioController.java
+package com.ecomarket.userservice.controller;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.service.UsuarioService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/usuarios")
+public class UsuarioController {
+    @Autowired
+    private UsuarioService usuarioService;
+
+    @GetMapping
+    public List<Usuario> getAllUsuarios() {
+        return usuarioService.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Usuario> getUsuarioById(@PathVariable Integer id) {
+        return usuarioService.findById(id)
+                .map(usuario -> ResponseEntity.ok().body(usuario))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping
+    public ResponseEntity<Usuario> createUsuario(@RequestBody Usuario usuario) {
+        Usuario savedUsuario = usuarioService.save(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUsuario);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Usuario> updateUsuario(@PathVariable Integer id, @RequestBody Usuario usuario) {
+        return usuarioService.update(id, usuario)
+                .map(updatedUsuario -> ResponseEntity.ok().body(updatedUsuario))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUsuario(@PathVariable Integer id) {
+        if (usuarioService.delete(id)) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/controller/UsuarioControllerV2.java
+package com.ecomarket.userservice.controller;
+
+import com.ecomarket.userservice.assemblers.UsuarioModelAssembler;
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
+@RestController
+@RequestMapping("/api/v2/usuarios")
+@Tag(name = "Usuarios V2", description = "API con HATEOAS para usuarios de EcoMarket")
+public class UsuarioControllerV2 {
+    @Autowired
+    private UsuarioService usuarioService;
+    @Autowired
+    private UsuarioModelAssembler assembler;
+
+    @Operation(summary = "Listar todos los usuarios")
+    @GetMapping
+    public CollectionModel<EntityModel<Usuario>> getAllUsuarios() {
+        List<EntityModel<Usuario>> usuarios = usuarioService.findAll().stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+        return CollectionModel.of(usuarios, linkTo(methodOn(UsuarioControllerV2.class).getAllUsuarios()).withSelfRel());
+    }
+
+    @Operation(summary = "Obtener un usuario por ID")
+    @GetMapping("/{id}")
+    public ResponseEntity<EntityModel<Usuario>> getUsuarioById(@PathVariable Integer id) {
+        return usuarioService.findById(id)
+                .map(usuario -> ResponseEntity.ok().body(assembler.toModel(usuario)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Crear un nuevo usuario")
+    @PostMapping
+    public ResponseEntity<EntityModel<Usuario>> createUsuario(@RequestBody Usuario usuario) {
+        Usuario savedUsuario = usuarioService.save(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(assembler.toModel(savedUsuario));
+    }
+
+    @Operation(summary = "Actualizar un usuario existente")
+    @PutMapping("/{id}")
+    public ResponseEntity<EntityModel<Usuario>> updateUsuario(@PathVariable Integer id, @RequestBody Usuario usuario) {
+        return usuarioService.update(id, usuario)
+                .map(updatedUsuario -> ResponseEntity.ok().body(assembler.toModel(updatedUsuario)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Eliminar un usuario")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUsuario(@PathVariable Integer id) {
+        if (usuarioService.delete(id)) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/model/Usuario.java
+package com.ecomarket.userservice.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "usuario")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Usuario {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer usuarioId;
+    @Column(name = "nombre_usuario")
+    private String nombreUsuario;
+    private String apellido;
+    @Column(name = "correo_usuario", unique = true)
+    private String correoUsuario;
+    private String contraseña;
+    @Column(name = "rol_id")
+    private Integer rolId;
+    @Column(name = "tienda_id")
+    private Integer tiendaId;
+    @Column(name = "fecha_registro")
+    private String fechaRegistro;
+    private String estado;
+    @Column(name = "ultimo_acceso")
+    private String ultimoAcceso;
+}
+
+user-service/src/main/java/com/ecomarket/userservice/reporistory/UsuarioRepository.java
+package com.ecomarket.userservice.reporistory;
+
+import com.ecomarket.userservice.model.Usuario;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+    Optional<Usuario> findByCorreoUsuario(String correoUsuario);
+    List<Usuario> findByRolId(Integer rolId);
+    List<Usuario> findByTiendaId(Integer tiendaId);
+    List<Usuario> findByEstado(String estado);
+    boolean existsByCorreoUsuario(String correoUsuario);
+    List<Usuario> findByNombreUsuarioContainingIgnoreCase(String nombreUsuario);
+}
+
+user-service/src/main/java/com/ecomarket/userservice/service/UsuarioService.java
+package com.ecomarket.userservice.service;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.reporistory.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UsuarioService {
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    public List<Usuario> findAll() {
+        return usuarioRepository.findAll();
+    }
+
+    public Optional<Usuario> findById(Integer id) {
+        return usuarioRepository.findById(id);
+    }
+
+    public Usuario save(Usuario usuario) {
+        return usuarioRepository.save(usuario);
+    }
+
+    public Optional<Usuario> update(Integer id, Usuario usuario) {
+        if (!usuarioRepository.existsById(id)) {
+            return Optional.empty();
+        }
+        usuario.setUsuarioId(id);
+        return Optional.of(usuarioRepository.save(usuario));
+    }
+
+    public boolean delete(Integer id) {
+        if (!usuarioRepository.existsById(id)) {
+            return false;
+        }
+        usuarioRepository.deleteById(id);
+        return true;
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/UserServiceApplication.java
+package com.ecomarket.userservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class UserServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(UserServiceApplication.class, args);
+    }
+}
+
+user-service/src/main/resources/application.properties
+spring.application.name=user-service
+server.port=8091
+# H2 como base de datos principal
+spring.datasource.url=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+user-service/src/main/resources/application-dev.properties
+spring.application.name=user-service
+server.port=8091
+spring.datasource.url=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+user-service/src/main/resources/application-test.properties
+spring.application.name=user-service
+server.port=8092
+spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+user-service/src/test/java/com/ecomarket/userservice/UserServiceApplicationTests.java
+package com.ecomarket.userservice;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class UserServiceApplicationTests {
+    @Test
+    void contextLoads() {
+    }
+}
+
+user-service/pom.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.5</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.ecomarket</groupId>
+    <artifactId>user-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>user-service</name>
+    <description>Microservicio para gestión de usuarios de EcoMarket SPA</description>
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-hateoas</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.2.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.19.7</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <version>1.19.7</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.datafaker</groupId>
+            <artifactId>datafaker</artifactId>
+            <version>2.1.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+

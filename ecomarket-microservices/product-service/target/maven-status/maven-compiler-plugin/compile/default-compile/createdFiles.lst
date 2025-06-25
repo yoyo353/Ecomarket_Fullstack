@@ -5,3 +5,4 @@ com\ecomarket\productservice\repository\ProductRepository.class
 com\ecomarket\productservice\config\SwaggerConfig.class
 com\ecomarket\productservice\model\Producto.class
 com\ecomarket\productservice\DataLoader.class
+com\ecomarket\productservice\assemblers\ProductoModelAssembler.class

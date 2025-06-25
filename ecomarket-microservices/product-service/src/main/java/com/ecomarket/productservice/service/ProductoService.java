@@ -68,6 +68,41 @@ public class ProductoService {
     public List<Producto> obtenerPorCategoria(Integer categoriaId) {
         return productRepository.findByCategoriaId(categoriaId);
     }
+
+    // Productos por proveedor y tipo ecológico
+    public List<Producto> obtenerPorProveedorYEcologico(Integer proveedorId, Boolean esEcologico) {
+        return productRepository.findByProveedorPrincipalIdAndEsEcologico(proveedorId, esEcologico);
+    }
+
+    // Productos por rango de precio
+    public List<Producto> obtenerPorRangoPrecio(Double precioMin, Double precioMax) {
+        return productRepository.findByPrecioUnitarioBetween(precioMin, precioMax);
+    }
+
+    // Productos más caros que un precio
+    public List<Producto> obtenerPorPrecioMayorA(Double precio) {
+        return productRepository.findByPrecioUnitarioGreaterThan(precio);
+    }
+
+    // Productos más baratos que un precio
+    public List<Producto> obtenerPorPrecioMenorA(Double precio) {
+        return productRepository.findByPrecioUnitarioLessThan(precio);
+    }
+
+    // Buscar productos por nombre
+    public List<Producto> buscarPorNombre(String nombre) {
+        return productRepository.findByNombreProductoContainingIgnoreCase(nombre);
+    }
+
+    // Contar productos ecológicos
+    public Long contarProductosEcologicos() {
+        return productRepository.countByEsEcologico(true);
+    }
+
+    // Contar productos no ecológicos
+    public Long contarProductosNoEcologicos() {
+        return productRepository.countByEsEcologico(false);
+    }
 }
 
 

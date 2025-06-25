@@ -23,4 +23,11 @@ public interface ProductRepository extends JpaRepository<Producto, Integer> {
     List<Producto> findByPrecioUnitarioBetween(Double precioMin, Double precioMax);
     
     boolean existsByCodigoSKU(String codigoSKU);
+
+    // NUEVOS MÉTODOS PERSONALIZADOS
+    List<Producto> findByProveedorPrincipalIdAndEsEcologico(Integer proveedorId, Boolean esEcologico);
+    List<Producto> findByPrecioUnitarioGreaterThan(Double precio);
+    List<Producto> findByPrecioUnitarioLessThan(Double precio);
+    List<Producto> findByNombreProductoContainingIgnoreCase(String nombre);
+    Long countByEsEcologico(Boolean esEcologico);
 }

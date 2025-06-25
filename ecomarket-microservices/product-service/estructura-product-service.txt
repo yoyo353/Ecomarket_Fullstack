@@ -36,16 +36,6 @@ product-service/
 │               └── ProductServiceApplicationTests.java # Test de contexto Spring Boot
 └── target/
 
-# Notas de estructura y mejoras:
-# - Todos los controladores y servicios documentados con OpenAPI/Swagger (anotaciones @Operation, @ApiResponse, @Schema, ejemplos, etc.)
-# - ProductoModelAssembler implementa lógica HATEOAS avanzada y links condicionales.
-# - DataLoader genera datos realistas con DataFaker para pruebas y desarrollo.
-# - Métodos de filtrado, estadísticas y endpoints extendidos en ProductoControllerV2.
-# - Tests unitarios y de integración para servicios y controladores.
-# - application.properties y perfiles dev/test con configuración avanzada de Swagger, H2 y perfiles.
-# - Clases internas relevantes (ej: EstadisticasProductos) documentadas en controladores.
-# - Estructura lista para ampliación de lógica de negocio, seguridad y documentación avanzada.
-
 // ===================== CLASES PRINCIPALES Y DOCUMENTACIÓN =====================
 
 // product-service/src/main/java/com/ecomarket/productservice/model/Producto.java

@@ -4,10 +4,14 @@ import com.ecomarket.userservice.assemblers.UsuarioModelAssembler;
 import com.ecomarket.userservice.model.Usuario;
 import com.ecomarket.userservice.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +23,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/api/v2/usuarios")
-@Tag(name = "Usuarios V2", description = "API con HATEOAS para usuarios de EcoMarket")
+@Tag(name = "Usuarios V2", description = "API con HATEOAS para gestión de usuarios de EcoMarket")
 public class UsuarioControllerV2 {
 
     @Autowired
@@ -28,120 +32,185 @@ public class UsuarioControllerV2 {
     @Autowired
     private UsuarioModelAssembler assembler;
 
-    @Operation(summary = "Obtener todos los usuarios con HATEOAS")
+    @Operation(
+        summary = "Obtener todos los usuarios",
+        description = "Retorna una lista completa de usuarios con enlaces HATEOAS para navegación"
+    )
+    @ApiResponse(responseCode = "200", description = "Lista de usuarios obtenida exitosamente")
     @GetMapping
-    public CollectionModel<EntityModel<Usuario>> obtenerTodos() {
-        List<EntityModel<Usuario>> usuarios = usuarioService.obtenerTodos().stream()
+    public CollectionModel<EntityModel<Usuario>> getAllUsuarios() {
+        List<EntityModel<Usuario>> usuarios = usuarioService.findAll().stream()
                 .map(assembler::toModel)
                 .collect(Collectors.toList());
+
         return CollectionModel.of(usuarios)
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerTodos()).withSelfRel())
-                .add(linkTo(methodOn(UsuarioControllerV2.class).totalUsuarios()).withRel("total"));
+                // Link a sí mismo
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getAllUsuarios()).withSelfRel())
+                // Link para crear nuevo usuario
+                .add(linkTo(UsuarioControllerV2.class).withRel("create").withTitle("Crear usuario"))
+                // Links adicionales para filtros
+                .add(linkTo(UsuarioControllerV2.class).slash("activos").withRel("active-users"))
+                .add(linkTo(UsuarioControllerV2.class).slash("inactivos").withRel("inactive-users"));
     }
 
-    @Operation(summary = "Obtener usuario por ID con HATEOAS")
+    @Operation(
+        summary = "Obtener usuario por ID",
+        description = "Retorna un usuario específico con todos sus enlaces HATEOAS disponibles"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuario encontrado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<EntityModel<Usuario>> obtenerPorId(@PathVariable Integer id) {
-        Usuario usuario = usuarioService.buscarPorId(id);
-        if (usuario != null) {
-            return ResponseEntity.ok(assembler.toModel(usuario));
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<EntityModel<Usuario>> getUsuarioById(
+            @Parameter(description = "ID del usuario", required = true, example = "1")
+            @PathVariable Integer id) {
+        return usuarioService.findById(id)
+                .map(usuario -> ResponseEntity.ok(assembler.toModel(usuario)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Buscar usuario por correo con HATEOAS")
-    @GetMapping("/correo/{correo}")
-    public ResponseEntity<EntityModel<Usuario>> obtenerPorCorreo(@PathVariable String correo) {
-        Usuario usuario = usuarioService.buscarPorCorreo(correo);
-        if (usuario != null) {
-            return ResponseEntity.ok(assembler.toModel(usuario));
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @Operation(summary = "Crear nuevo usuario con HATEOAS")
+    @Operation(
+        summary = "Crear nuevo usuario",
+        description = "Crea un nuevo usuario en el sistema y retorna el usuario creado con enlaces HATEOAS"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Usuario creado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Datos de usuario inválidos")
+    })
     @PostMapping
-    public ResponseEntity<EntityModel<Usuario>> crear(@RequestBody Usuario usuario) {
-        Usuario nuevoUsuario = usuarioService.guardar(usuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(assembler.toModel(nuevoUsuario));
+    public ResponseEntity<EntityModel<Usuario>> createUsuario(
+            @Parameter(description = "Datos del usuario a crear", required = true)
+            @RequestBody Usuario usuario) {
+        Usuario savedUsuario = usuarioService.save(usuario);
+        EntityModel<Usuario> usuarioModel = assembler.toModel(savedUsuario);
+        return ResponseEntity
+                .created(usuarioModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
+                .body(usuarioModel);
     }
 
-    @Operation(summary = "Actualizar usuario con HATEOAS")
+    @Operation(
+        summary = "Actualizar usuario existente",
+        description = "Actualiza un usuario existente y retorna el usuario actualizado con enlaces HATEOAS"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Usuario actualizado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+        @ApiResponse(responseCode = "400", description = "Datos de usuario inválidos")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<EntityModel<Usuario>> actualizar(@PathVariable Integer id, @RequestBody Usuario usuario) {
-        Usuario usuarioActualizado = usuarioService.actualizar(id, usuario);
-        if (usuarioActualizado != null) {
-            return ResponseEntity.ok(assembler.toModel(usuarioActualizado));
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<EntityModel<Usuario>> updateUsuario(
+            @Parameter(description = "ID del usuario a actualizar", required = true, example = "1")
+            @PathVariable Integer id,
+            @Parameter(description = "Nuevos datos del usuario", required = true)
+            @RequestBody Usuario usuario) {
+        return usuarioService.update(id, usuario)
+                .map(updatedUsuario -> ResponseEntity.ok(assembler.toModel(updatedUsuario)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Eliminar usuario")
+    @Operation(
+        summary = "Eliminar usuario",
+        description = "Elimina un usuario del sistema"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Usuario eliminado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
-        boolean eliminado = usuarioService.eliminar(id);
-        if (eliminado) {
+    public ResponseEntity<Void> deleteUsuario(
+            @Parameter(description = "ID del usuario a eliminar", required = true, example = "1")
+            @PathVariable Integer id) {
+        if (usuarioService.delete(id)) {
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @Operation(summary = "Total de usuarios")
-    @GetMapping("/total")
-    public ResponseEntity<EntityModel<Integer>> totalUsuarios() {
-        int total = usuarioService.totalUsuarios();
-        return ResponseEntity.ok(
-                EntityModel.of(total)
-                        .add(linkTo(methodOn(UsuarioControllerV2.class).totalUsuarios()).withSelfRel())
-                        .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerTodos()).withRel("usuarios"))
-        );
+    // Métodos adicionales para HATEOAS y compatibilidad con el assembler
+
+    // Alias para compatibilidad con el assembler y HATEOAS avanzado
+    @GetMapping("/alias/{id}")
+    public ResponseEntity<EntityModel<Usuario>> obtenerPorId(@PathVariable Integer id) {
+        return getUsuarioById(id);
     }
 
-    @Operation(summary = "Obtener usuarios por rol con HATEOAS")
-    @GetMapping("/rol/{rolId}")
-    public CollectionModel<EntityModel<Usuario>> obtenerPorRol(@PathVariable Integer rolId) {
-        List<EntityModel<Usuario>> usuarios = usuarioService.obtenerPorRol(rolId).stream()
-                .map(assembler::toModel)
-                .collect(Collectors.toList());
-        return CollectionModel.of(usuarios)
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerPorRol(rolId)).withSelfRel())
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerTodos()).withRel("usuarios"));
+    @PutMapping("/alias/{id}")
+    public ResponseEntity<EntityModel<Usuario>> actualizar(@PathVariable Integer id, @RequestBody Usuario usuario) {
+        return updateUsuario(id, usuario);
     }
 
-    @Operation(summary = "Obtener usuarios por tienda con HATEOAS")
-    @GetMapping("/tienda/{tiendaId}")
-    public CollectionModel<EntityModel<Usuario>> obtenerPorTienda(@PathVariable Integer tiendaId) {
-        List<EntityModel<Usuario>> usuarios = usuarioService.obtenerPorTienda(tiendaId).stream()
-                .map(assembler::toModel)
-                .collect(Collectors.toList());
-        return CollectionModel.of(usuarios)
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerPorTienda(tiendaId)).withSelfRel())
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerTodos()).withRel("usuarios"));
+    @DeleteMapping("/alias/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        return deleteUsuario(id);
     }
 
-    @Operation(summary = "Obtener usuarios activos con HATEOAS")
+    // Métodos para usuarios activos/inactivos y estadísticas
+    @Operation(
+        summary = "Obtener usuarios activos",
+        description = "Retorna solo los usuarios con estado 'activo'"
+    )
     @GetMapping("/activos")
-    public CollectionModel<EntityModel<Usuario>> obtenerUsuariosActivos() {
-        List<EntityModel<Usuario>> usuarios = usuarioService.obtenerUsuariosActivos().stream()
-                .map(assembler::toModel)
+    public CollectionModel<EntityModel<Usuario>> getUsuariosActivos() {
+        List<EntityModel<Usuario>> usuariosActivos = usuarioService.findAll().stream()
+                .filter(usuario -> "activo".equalsIgnoreCase(usuario.getEstado()))
+                .map(assembler::toSimpleModel)
                 .collect(Collectors.toList());
-        return CollectionModel.of(usuarios)
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerUsuariosActivos()).withSelfRel())
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerTodos()).withRel("usuarios"));
+        return CollectionModel.of(usuariosActivos)
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getUsuariosActivos()).withSelfRel())
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getAllUsuarios()).withRel("all-users"))
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getUsuariosInactivos()).withRel("inactive-users"));
     }
 
-    @Operation(summary = "Buscar usuarios por nombre con HATEOAS")
-    @GetMapping("/buscar/{nombre}")
-    public CollectionModel<EntityModel<Usuario>> buscarPorNombre(@PathVariable String nombre) {
-        List<EntityModel<Usuario>> usuarios = usuarioService.buscarPorNombre(nombre).stream()
-                .map(assembler::toModel)
+    @Operation(
+        summary = "Obtener usuarios inactivos",
+        description = "Retorna solo los usuarios con estado 'inactivo' o 'suspendido'"
+    )
+    @GetMapping("/inactivos")
+    public CollectionModel<EntityModel<Usuario>> getUsuariosInactivos() {
+        List<EntityModel<Usuario>> usuariosInactivos = usuarioService.findAll().stream()
+                .filter(usuario -> "inactivo".equalsIgnoreCase(usuario.getEstado()) || 
+                                  "suspendido".equalsIgnoreCase(usuario.getEstado()))
+                .map(assembler::toSimpleModel)
                 .collect(Collectors.toList());
-        return CollectionModel.of(usuarios)
-                .add(linkTo(methodOn(UsuarioControllerV2.class).buscarPorNombre(nombre)).withSelfRel())
-                .add(linkTo(methodOn(UsuarioControllerV2.class).obtenerTodos()).withRel("usuarios"));
+        return CollectionModel.of(usuariosInactivos)
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getUsuariosInactivos()).withSelfRel())
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getAllUsuarios()).withRel("all-users"))
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getUsuariosActivos()).withRel("active-users"));
+    }
+
+    @Operation(
+        summary = "Obtener estadísticas de usuarios",
+        description = "Retorna información estadística sobre los usuarios con enlaces relacionados"
+    )
+    @GetMapping("/stats")
+    public ResponseEntity<EntityModel<UsuarioStats>> getUsuarioStats() {
+        long totalUsuarios = usuarioService.findAll().size();
+        long usuariosActivos = usuarioService.findAll().stream()
+                .filter(u -> "activo".equalsIgnoreCase(u.getEstado()))
+                .count();
+        long usuariosInactivos = totalUsuarios - usuariosActivos;
+        UsuarioStats stats = new UsuarioStats(totalUsuarios, usuariosActivos, usuariosInactivos);
+        EntityModel<UsuarioStats> statsModel = EntityModel.of(stats)
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getUsuarioStats()).withSelfRel())
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getAllUsuarios()).withRel("all-users"))
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getUsuariosActivos()).withRel("active-users"))
+                .add(linkTo(methodOn(UsuarioControllerV2.class).getUsuariosInactivos()).withRel("inactive-users"));
+        return ResponseEntity.ok(statsModel);
+    }
+
+    // Clase interna para estadísticas de usuario
+    public static class UsuarioStats {
+        public final long total;
+        public final long activos;
+        public final long inactivos;
+        public final double porcentajeActivos;
+        public UsuarioStats(long total, long activos, long inactivos) {
+            this.total = total;
+            this.activos = activos;
+            this.inactivos = inactivos;
+            this.porcentajeActivos = total > 0 ? ((double) activos / total) * 100 : 0;
+        }
     }
 }

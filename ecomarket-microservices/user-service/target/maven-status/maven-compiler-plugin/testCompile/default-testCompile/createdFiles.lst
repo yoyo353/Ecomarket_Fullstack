@@ -1,1 +1,3 @@
+com\ecomarket\userservice\service\UsuarioServiceTest.class
 com\ecomarket\userservice\UserServiceApplicationTests.class
+com\ecomarket\userservice\reporistory\UsuarioRepositoryTest.class

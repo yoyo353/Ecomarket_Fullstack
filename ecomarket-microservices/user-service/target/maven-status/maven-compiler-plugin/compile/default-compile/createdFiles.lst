@@ -1,6 +1,10 @@
-com\ecomarket\userservice\reporistory\UsuarioRepository.class
+com\ecomarket\userservice\controller\UsuarioControllerV2.class
 com\ecomarket\userservice\model\Usuario.class
-com\ecomarket\userservice\service\UsuarioService.class
 com\ecomarket\userservice\UserServiceApplication.class
+com\ecomarket\userservice\assemblers\UsuarioModelAssembler.class
+com\ecomarket\userservice\reporistory\UsuarioRepository.class
+com\ecomarket\userservice\controller\UsuarioControllerV2$UsuarioStats.class
+com\ecomarket\userservice\service\UsuarioService.class
 com\ecomarket\userservice\controller\UsuarioController.class
+com\ecomarket\userservice\config\DataLoader.class
 com\ecomarket\userservice\config\SwaggerConfig.class

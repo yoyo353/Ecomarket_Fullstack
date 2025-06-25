@@ -78,5 +78,33 @@ public class UsuarioService {
     public List<Usuario> buscarPorNombre(String nombre) {
         return usuarioRepository.findByNombreUsuarioContainingIgnoreCase(nombre);
     }
+
+    public List<Usuario> findAll() {
+        return usuarioRepository.findAll();
+    }
+
+    public Optional<Usuario> findById(Integer id) {
+        return usuarioRepository.findById(id);
+    }
+
+    public Usuario save(Usuario usuario) {
+        return usuarioRepository.save(usuario);
+    }
+
+    public Optional<Usuario> update(Integer id, Usuario usuario) {
+        if (!usuarioRepository.existsById(id)) {
+            return Optional.empty();
+        }
+        usuario.setUsuarioId(id);
+        return Optional.of(usuarioRepository.save(usuario));
+    }
+
+    public boolean delete(Integer id) {
+        if (!usuarioRepository.existsById(id)) {
+            return false;
+        }
+        usuarioRepository.deleteById(id);
+        return true;
+    }
 }
 

@@ -1,0 +1,603 @@
+user-service/
+├── HELP.md
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/ecomarket/userservice/
+│   │   │       ├── assemblers/
+│   │   │       │   └── UsuarioModelAssembler.java
+│   │   │       ├── config/
+│   │   │       │   ├── DataLoader.java
+│   │   │       │   └── SwaggerConfig.java
+│   │   │       ├── controller/
+│   │   │       │   ├── UsuarioController.java
+│   │   │       │   └── UsuarioControllerV2.java
+│   │   │       ├── model/
+│   │   │       │   └── Usuario.java
+│   │   │       ├── reporistory/
+│   │   │       │   └── UsuarioRepository.java
+│   │   │       ├── service/
+│   │   │       │   └── UsuarioService.java
+│   │   │       └── UserServiceApplication.java
+│   │   └── resources/
+│   │       ├── application-dev.properties
+│   │       ├── application-test.properties
+│   │       └── application.properties
+│   └── test/
+│       └── java/
+│           └── com/ecomarket/userservice/
+│               ├── UserServiceApplicationTests.java
+│               ├── service/
+│               │   └── UsuarioServiceTest.java
+│               └── reporistory/
+│                   └── UsuarioRepositoryTest.java
+└── target/
+
+user-service/src/main/java/com/ecomarket/userservice/controller/UsuarioController.java
+package com.ecomarket.userservice.controller;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/usuarios")
+@Tag(name = "Usuarios V1", description = "API para usuarios de EcoMarket")
+public class UsuarioController {
+    @Autowired
+    private UsuarioService usuarioService;
+
+    @Operation(summary = "Listar todos los usuarios")
+    @GetMapping
+    public List<Usuario> getAllUsuarios() {
+        return usuarioService.findAll();
+    }
+
+    @Operation(summary = "Obtener un usuario por ID")
+    @GetMapping("/{id}")
+    public ResponseEntity<Usuario> getUsuarioById(@PathVariable Integer id) {
+        return usuarioService.findById(id)
+                .map(usuario -> ResponseEntity.ok().body(usuario))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Crear un nuevo usuario")
+    @PostMapping
+    public ResponseEntity<Usuario> createUsuario(@RequestBody Usuario usuario) {
+        Usuario savedUsuario = usuarioService.save(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUsuario);
+    }
+
+    @Operation(summary = "Actualizar un usuario existente")
+    @PutMapping("/{id}")
+    public ResponseEntity<Usuario> updateUsuario(@PathVariable Integer id, @RequestBody Usuario usuario) {
+        return usuarioService.update(id, usuario)
+                .map(updatedUsuario -> ResponseEntity.ok().body(updatedUsuario))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Eliminar un usuario")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUsuario(@PathVariable Integer id) {
+        if (usuarioService.delete(id)) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/controller/UsuarioControllerV2.java
+package com.ecomarket.userservice.controller;
+
+import com.ecomarket.userservice.assemblers.UsuarioModelAssembler;
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
+@RestController
+@RequestMapping("/api/v2/usuarios")
+@Tag(name = "Usuarios V2", description = "API con HATEOAS para usuarios de EcoMarket")
+public class UsuarioControllerV2 {
+    @Autowired
+    private UsuarioService usuarioService;
+    @Autowired
+    private UsuarioModelAssembler assembler;
+
+    @Operation(summary = "Listar todos los usuarios")
+    @GetMapping
+    public CollectionModel<EntityModel<Usuario>> getAllUsuarios() {
+        List<EntityModel<Usuario>> usuarios = usuarioService.findAll().stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+        return CollectionModel.of(usuarios, linkTo(methodOn(UsuarioControllerV2.class).getAllUsuarios()).withSelfRel());
+    }
+
+    @Operation(summary = "Obtener un usuario por ID")
+    @GetMapping("/{id}")
+    public ResponseEntity<EntityModel<Usuario>> getUsuarioById(@PathVariable Integer id) {
+        return usuarioService.findById(id)
+                .map(usuario -> ResponseEntity.ok().body(assembler.toModel(usuario)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Crear un nuevo usuario")
+    @PostMapping
+    public ResponseEntity<EntityModel<Usuario>> createUsuario(@RequestBody Usuario usuario) {
+        Usuario savedUsuario = usuarioService.save(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(assembler.toModel(savedUsuario));
+    }
+
+    @Operation(summary = "Actualizar un usuario existente")
+    @PutMapping("/{id}")
+    public ResponseEntity<EntityModel<Usuario>> updateUsuario(@PathVariable Integer id, @RequestBody Usuario usuario) {
+        return usuarioService.update(id, usuario)
+                .map(updatedUsuario -> ResponseEntity.ok().body(assembler.toModel(updatedUsuario)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Eliminar un usuario")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUsuario(@PathVariable Integer id) {
+        if (usuarioService.delete(id)) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/model/Usuario.java
+package com.ecomarket.userservice.model;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "usuario")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Schema(description = "Entidad que representa a un usuario en el sistema")
+public class Usuario {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único del usuario", example = "1")
+    private Integer usuarioId;
+
+    @Column(name = "nombre_usuario")
+    @Schema(description = "Nombre del usuario", example = "Juan")
+    private String nombreUsuario;
+
+    private String apellido;
+
+    @Column(name = "correo_usuario", unique = true)
+    @Schema(description = "Correo electrónico del usuario", example = "juan@example.com")
+    private String correoUsuario;
+
+    private String contraseña;
+
+    @Column(name = "rol_id")
+    @Schema(description = "ID del rol asignado al usuario", example = "2")
+    private Integer rolId;
+
+    @Column(name = "tienda_id")
+    @Schema(description = "ID de la tienda asociada al usuario", example = "3")
+    private Integer tiendaId;
+
+    @Column(name = "fecha_registro")
+    @Schema(description = "Fecha de registro del usuario", example = "2023-01-01")
+    private String fechaRegistro;
+
+    private String estado;
+
+    @Column(name = "ultimo_acceso")
+    @Schema(description = "Última fecha y hora de acceso del usuario", example = "2023-10-01T10:15:30")
+    private String ultimoAcceso;
+}
+
+user-service/src/main/java/com/ecomarket/userservice/reporistory/UsuarioRepository.java
+package com.ecomarket.userservice.reporistory;
+
+import com.ecomarket.userservice.model.Usuario;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+    Optional<Usuario> findByCorreoUsuario(String correoUsuario);
+    List<Usuario> findByRolId(Integer rolId);
+    List<Usuario> findByTiendaId(Integer tiendaId);
+    List<Usuario> findByEstado(String estado);
+    boolean existsByCorreoUsuario(String correoUsuario);
+    List<Usuario> findByNombreUsuarioContainingIgnoreCase(String nombreUsuario);
+}
+
+user-service/src/main/java/com/ecomarket/userservice/service/UsuarioService.java
+package com.ecomarket.userservice.service;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.reporistory.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UsuarioService {
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    public List<Usuario> findAll() {
+        return usuarioRepository.findAll();
+    }
+
+    public Optional<Usuario> findById(Integer id) {
+        return usuarioRepository.findById(id);
+    }
+
+    public Usuario save(Usuario usuario) {
+        return usuarioRepository.save(usuario);
+    }
+
+    public Optional<Usuario> update(Integer id, Usuario usuario) {
+        if (!usuarioRepository.existsById(id)) {
+            return Optional.empty();
+        }
+        usuario.setUsuarioId(id);
+        return Optional.of(usuarioRepository.save(usuario));
+    }
+
+    public boolean delete(Integer id) {
+        if (!usuarioRepository.existsById(id)) {
+            return false;
+        }
+        usuarioRepository.deleteById(id);
+        return true;
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/UserServiceApplication.java
+package com.ecomarket.userservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class UserServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(UserServiceApplication.class, args);
+    }
+}
+
+user-service/src/main/resources/application.properties
+spring.application.name=user-service
+server.port=8091
+# H2 como base de datos principal
+spring.datasource.url=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+user-service/src/main/resources/application-dev.properties
+spring.application.name=user-service
+server.port=8091
+spring.datasource.url=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+user-service/src/main/resources/application-test.properties
+spring.application.name=user-service
+server.port=8092
+spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+user-service/src/test/java/com/ecomarket/userservice/UserServiceApplicationTests.java
+package com.ecomarket.userservice;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class UserServiceApplicationTests {
+    @Test
+    void contextLoads() {
+    }
+}
+
+user-service/src/test/java/com/ecomarket/userservice/service/UsuarioServiceTest.java
+package com.ecomarket.userservice.service;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.reporistory.UsuarioRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
+
+class UsuarioServiceTest {
+    @Mock
+    private UsuarioRepository usuarioRepository;
+
+    @InjectMocks
+    private UsuarioService usuarioService;
+
+    private Usuario usuario;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        usuario = new Usuario(1, "Juan", "Pérez", "juan.perez@example.com", "password", 1, 1, "2023-01-01", "activo", "2023-10-01T10:15:30");
+    }
+
+    @Test
+    void testFindAll() {
+        List<Usuario> usuarios = new ArrayList<>();
+        usuarios.add(usuario);
+        when(usuarioRepository.findAll()).thenReturn(usuarios);
+
+        List<Usuario> result = usuarioService.findAll();
+        assertEquals(1, result.size());
+        assertEquals("Juan", result.get(0).getNombreUsuario());
+    }
+
+    @Test
+    void testFindById() {
+        when(usuarioRepository.findById(1)).thenReturn(Optional.of(usuario));
+
+        Optional<Usuario> result = usuarioService.findById(1);
+        assertTrue(result.isPresent());
+        assertEquals("Juan", result.get().getNombreUsuario());
+    }
+
+    @Test
+    void testSave() {
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
+        Usuario result = usuarioService.save(usuario);
+        assertEquals("Juan", result.getNombreUsuario());
+    }
+
+    @Test
+    void testUpdate() {
+        when(usuarioRepository.existsById(1)).thenReturn(true);
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
+        Optional<Usuario> result = usuarioService.update(1, usuario);
+        assertTrue(result.isPresent());
+        assertEquals("Juan", result.get().getNombreUsuario());
+    }
+
+    @Test
+    void testDelete() {
+        when(usuarioRepository.existsById(1)).thenReturn(true);
+        doNothing().when(usuarioRepository).deleteById(1);
+
+        boolean result = usuarioService.delete(1);
+        assertTrue(result);
+        verify(usuarioRepository, times(1)).deleteById(1);
+    }
+}
+
+user-service/src/test/java/com/ecomarket/userservice/reporistory/UsuarioRepositoryTest.java
+package com.ecomarket.userservice.reporistory;
+
+import com.ecomarket.userservice.model.Usuario;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@DataJpaTest
+class UsuarioRepositoryTest {
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @BeforeEach
+    void setUp() {
+        Usuario usuario = new Usuario(null, "Juan", "Pérez", "juan.perez@example.com", "password", 1, 1, "2023-01-01", "activo", "2023-10-01T10:15:30");
+        usuarioRepository.save(usuario);
+    }
+
+    @Test
+    void testFindByCorreoUsuario() {
+        Usuario usuario = usuarioRepository.findByCorreoUsuario("juan.perez@example.com").orElse(null);
+        assertNotNull(usuario);
+        assertEquals("Juan", usuario.getNombreUsuario());
+    }
+
+    @Test
+    void testFindByRolId() {
+        List<Usuario> usuarios = usuarioRepository.findByRolId(1);
+        assertFalse(usuarios.isEmpty());
+        assertEquals("Juan", usuarios.get(0).getNombreUsuario());
+    }
+
+    @Test
+    void testFindByTiendaId() {
+        List<Usuario> usuarios = usuarioRepository.findByTiendaId(1);
+        assertFalse(usuarios.isEmpty());
+        assertEquals("Juan", usuarios.get(0).getNombreUsuario());
+    }
+
+    @Test
+    void testFindByEstado() {
+        List<Usuario> usuarios = usuarioRepository.findByEstado("activo");
+        assertFalse(usuarios.isEmpty());
+        assertEquals("Juan", usuarios.get(0).getNombreUsuario());
+    }
+
+    @Test
+    void testExistsByCorreoUsuario() {
+        boolean exists = usuarioRepository.existsByCorreoUsuario("juan.perez@example.com");
+        assertTrue(exists);
+    }
+
+    @Test
+    void testFindByNombreUsuarioContainingIgnoreCase() {
+        List<Usuario> usuarios = usuarioRepository.findByNombreUsuarioContainingIgnoreCase("juan");
+        assertFalse(usuarios.isEmpty());
+        assertEquals("Juan", usuarios.get(0).getNombreUsuario());
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/config/DataLoader.java
+package com.ecomarket.userservice.config;
+
+import com.ecomarket.userservice.model.Usuario;
+import com.ecomarket.userservice.reporistory.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
+import java.util.stream.IntStream;
+
+@Component
+public class DataLoader implements CommandLineRunner {
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Override
+    public void run(String... args) throws Exception {
+        // Cargar datos iniciales en la base de datos
+        IntStream.rangeClosed(1, 10).forEach(i -> {
+            Usuario usuario = new Usuario();
+            usuario.setNombreUsuario("Usuario" + i);
+            usuario.setApellido("Apellido" + i);
+            usuario.setCorreoUsuario("usuario" + i + "@example.com");
+            usuario.setContraseña("password");
+            usuario.setRolId(1);
+            usuario.setTiendaId(1);
+            usuario.setFechaRegistro("2023-01-01");
+            usuario.setEstado("activo");
+            usuario.setUltimoAcceso("2023-10-01T10:15:30");
+            usuarioRepository.save(usuario);
+        });
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/config/SwaggerConfig.java
+package com.ecomarket.userservice.config;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class SwaggerConfig {
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("API de Usuarios - EcoMarket")
+                        .version("1.0")
+                        .description("API para la gestión de usuarios en EcoMarket")
+                        .contact(new Contact()
+                                .name("Soporte EcoMarket")
+                                .email("soporte@ecomarket.com")))
+                .servers(List.of(
+                        new Server().url("http://localhost:8091/api/v1").description("Servidor local V1"),
+                        new Server().url("http://localhost:8091/api/v2").description("Servidor local V2")
+                ));
+    }
+}
+
+user-service/src/main/java/com/ecomarket/userservice/assemblers/UsuarioModelAssembler.java
+package com.ecomarket.userservice.assemblers;
+
+import com.ecomarket.userservice.controller.UsuarioControllerV2;
+import com.ecomarket.userservice.model.Usuario;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
+import org.springframework.stereotype.Component;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
+@Component
+public class UsuarioModelAssembler extends RepresentationModelAssemblerSupport<Usuario, EntityModel<Usuario>> {
+    public UsuarioModelAssembler() {
+        super(UsuarioControllerV2.class, EntityModel.class);
+    }
+
+    @Override
+    public EntityModel<Usuario> toModel(Usuario usuario) {
+        EntityModel<Usuario> usuarioModel = createModelWithId(usuario.getUsuarioId(), usuario);
+        usuarioModel.add(linkTo(methodOn(UsuarioControllerV2.class).getUsuarioById(usuario.getUsuarioId())).withRel("self"));
+        usuarioModel.add(linkTo(methodOn(UsuarioControllerV2.class).getAllUsuarios()).withRel("usuarios"));
+        return usuarioModel;
+    }
+}
+
+

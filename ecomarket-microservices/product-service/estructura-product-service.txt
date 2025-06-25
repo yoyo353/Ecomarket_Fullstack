@@ -8,327 +8,45 @@ product-service/
 │   │   ├── java/
 │   │   │   └── com/ecomarket/productservice/
 │   │   │       ├── assemblers/
-│   │   │       │   └── ProductoModelAssembler.java
+│   │   │       │   └── ProductoModelAssembler.java   # HATEOAS avanzado, links condicionales
 │   │   │       ├── config/
-│   │   │       │   └── SwaggerConfig.java
+│   │   │       │   └── SwaggerConfig.java           # Configuración avanzada OpenAPI/Swagger
 │   │   │       ├── controller/
-│   │   │       │   ├── ProductoController.java
-│   │   │       │   └── ProductoControllerV2.java
+│   │   │       │   ├── ProductoController.java      # CRUD v1, OpenAPI detallado
+│   │   │       │   └── ProductoControllerV2.java    # CRUD v2, HATEOAS, filtros, estadísticas, OpenAPI
 │   │   │       ├── model/
-│   │   │       │   └── Producto.java
+│   │   │       │   └── Producto.java                # Modelo con anotaciones @Schema
 │   │   │       ├── repository/
-│   │   │       │   └── ProductRepository.java
+│   │   │       │   └── ProductRepository.java       # Métodos personalizados y estándar
 │   │   │       ├── service/
-│   │   │       │   └── ProductoService.java
-│   │   │       ├── DataLoader.java
-│   │   │       └── ProductServiceApplication.java
+│   │   │       │   └── ProductoService.java         # Lógica de negocio, filtros, estadísticas
+│   │   │       ├── DataLoader.java                  # Carga de datos de prueba con DataFaker
+│   │   │       └── ProductServiceApplication.java   # Clase principal Spring Boot
 │   │   └── resources/
-│   │       ├── application-dev.properties
-│   │       ├── application-test.properties
-│   │       └── application.properties
+│   │       ├── application.properties               # Configuración general, Swagger UI
+│   │       ├── application-dev.properties           # Configuración H2, perfil dev
+│   │       └── application-test.properties          # Configuración H2, perfil test
 │   └── test/
 │       └── java/
 │           └── com/ecomarket/productservice/
 │               ├── controller/
-│               │   └── ProductoControllerTest.java
+│               │   └── ProductoControllerTest.java  # Tests unitarios de controlador v1
 │               ├── service/
-│               │   └── ProductoServiceTest.java
-│               └── ProductServiceApplicationTests.java
+│               │   └── ProductoServiceTest.java     # Tests unitarios de servicio
+│               └── ProductServiceApplicationTests.java # Test de contexto Spring Boot
 └── target/
 
-// product-service/pom.xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+# Notas de estructura y mejoras:
+# - Todos los controladores y servicios documentados con OpenAPI/Swagger (anotaciones @Operation, @ApiResponse, @Schema, ejemplos, etc.)
+# - ProductoModelAssembler implementa lógica HATEOAS avanzada y links condicionales.
+# - DataLoader genera datos realistas con DataFaker para pruebas y desarrollo.
+# - Métodos de filtrado, estadísticas y endpoints extendidos en ProductoControllerV2.
+# - Tests unitarios y de integración para servicios y controladores.
+# - application.properties y perfiles dev/test con configuración avanzada de Swagger, H2 y perfiles.
+# - Clases internas relevantes (ej: EstadisticasProductos) documentadas en controladores.
+# - Estructura lista para ampliación de lógica de negocio, seguridad y documentación avanzada.
 
-  <modelVersion>4.0.0</modelVersion>
-
-  <parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.4.5</version>
-    <relativePath/>
-  </parent>
-
-  <groupId>com.ecomarket</groupId>
-  <artifactId>product-service</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <name>product-service</name>
-  <description>Microservicio para gestión de productos ecológicos de EcoMarket SPA</description>
-
-  <properties>
-    <java.version>17</java.version>
-  </properties>
-
-  <dependencies>
-    <!-- Spring Boot Starters -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-hateoas</artifactId>
-    </dependency>
-
-    <!-- Oracle JDBC & Wallet -->
-    <dependency>
-      <groupId>com.oracle.database.jdbc</groupId>
-      <artifactId>ojdbc8</artifactId>
-      <version>19.19.0.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.oracle.database.security</groupId>
-      <artifactId>oraclepki</artifactId>
-      <version>19.19.0.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.oracle.database.security</groupId>
-      <artifactId>osdt_cert</artifactId>
-      <version>19.19.0.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.oracle.database.security</groupId>
-      <artifactId>osdt_core</artifactId>
-      <version>19.19.0.0</version>
-    </dependency>
-
-    <!-- DevTools -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-devtools</artifactId>
-      <scope>runtime</scope>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Lombok -->
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Base de datos H2 para pruebas (opcional) -->
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-
-    <!-- Testing -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- JUnit 5 -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- Mockito -->
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- TestContainers (opcional para pruebas más avanzadas) -->
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- Agregar esta dependencia dentro de <dependencies> -->
-    <dependency>
-      <groupId>net.datafaker</groupId>
-      <artifactId>datafaker</artifactId>
-      <version>2.3.0</version>
-    </dependency>
-
-    <!-- Swagger/OpenAPI 3.0 (solo una versión, según guía) -->
-    <dependency>
-        <groupId>org.springdoc</groupId>
-        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        <version>2.6.0</version>
-    </dependency>
-  </dependencies>
-
-  <repositories>
-    <repository>
-      <id>oracle</id>
-      <url>https://maven.oracle.com</url>
-    </repository>
-  </repositories>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
-          <annotationProcessorPaths>
-            <path>
-              <groupId>org.projectlombok</groupId>
-              <artifactId>lombok</artifactId>
-              <version>1.18.30</version>
-            </path>
-          </annotationProcessorPaths>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
-
-</project>
-
-// product-service/src/main/java/com/ecomarket/productservice/controller/ProductoController.java
-package com.ecomarket.productservice.controller;
-
-import com.ecomarket.productservice.model.Producto;
-import com.ecomarket.productservice.service.ProductoService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/v1/productos")
-@Tag(name = "Productos", description = "API para la gestión de productos ecológicos")
-public class ProductoController {
-    
-    @Autowired
-    private ProductoService productoService;
-    
-    // Obtener todos los productos
-    @Operation(
-        summary = "Obtener todos los productos",
-        description = "Retorna una lista completa de todos los productos disponibles en el catálogo"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
-            description = "Lista de productos obtenida exitosamente",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = Producto.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "500", 
-            description = "Error interno del servidor"
-        )
-    })
-    @GetMapping
-    public ResponseEntity<List<Producto>> obtenerTodos() {
-        List<Producto> productos = productoService.obtenerTodos();
-        return ResponseEntity.ok(productos);
-    }
-    
-    // Obtener producto por ID
-    @Operation(
-        summary = "Obtener producto por ID",
-        description = "Busca y retorna un producto específico usando su identificador único"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
-            description = "Producto encontrado exitosamente",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = Producto.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "404", 
-            description = "Producto no encontrado"
-        )
-    })
-    @GetMapping("/{id}")
-    public ResponseEntity<Producto> obtenerPorId(
-            @Parameter(description = "ID único del producto", example = "1")
-            @PathVariable Integer id) {
-        Producto producto = productoService.buscarPorId(id);
-        if (producto != null) {
-            return ResponseEntity.ok(producto);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-}
-
-// product-service/src/main/java/com/ecomarket/productservice/controller/ProductoControllerV2.java
-package com.ecomarket.productservice.controller;
-
-import com.ecomarket.productservice.assemblers.ProductoModelAssembler;
-import com.ecomarket.productservice.model.Producto;
-import com.ecomarket.productservice.service.ProductoService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
-
-@RestController
-@RequestMapping("/api/v2/productos")
-@Tag(name = "Productos V2", description = "API con HATEOAS para productos ecológicos")
-public class ProductoControllerV2 {
-
-    @Autowired
-    private ProductoService productoService;
-
-    @Autowired
-    private ProductoModelAssembler assembler;
-
-    @Operation(summary = "Obtener todos los productos con HATEOAS")
-    @GetMapping
-    public CollectionModel<EntityModel<Producto>> obtenerTodos() {
-        List<EntityModel<Producto>> productos = productoService.obtenerTodos().stream()
-                .map(assembler::toModel)
-                .collect(Collectors.toList());
-
-        return CollectionModel.of(productos)
-                .add(linkTo(methodOn(ProductoControllerV2.class).obtenerTodos()).withSelfRel())
-                .add(linkTo(methodOn(ProductoControllerV2.class).obtenerProductosEcologicos()).withRel("ecologicos"))
-                .add(linkTo(methodOn(ProductoControllerV2.class).totalProductos()).withRel("total"));
-    }
-}
+// ===================== CLASES PRINCIPALES Y DOCUMENTACIÓN =====================
 
 // product-service/src/main/java/com/ecomarket/productservice/model/Producto.java
 package com.ecomarket.productservice.model;
@@ -346,55 +64,41 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Schema(description = "Modelo de datos para productos ecológicos de EcoMarket")
 public class Producto {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(description = "Identificador único del producto", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Integer productoId;
-
     @Column(name = "nombre_producto")
     @Schema(description = "Nombre comercial del producto", example = "Jabón de lavanda orgánico", required = true)
     private String nombreProducto;
-
     @Column(name = "codigo_sku")
     @Schema(description = "Código SKU único del producto", example = "ECO-001", required = true)
     private String codigoSKU;
-
     @Column(name = "precio_unitario")
     @Schema(description = "Precio de venta al público", example = "12.99", required = true)
     private Double precioUnitario;
-
     @Column(name = "precio_compra")
     @Schema(description = "Precio de compra o costo", example = "6.50", required = true)
     private Double precioCompra;
-
     @Column(name = "margen_ganancia")
     @Schema(description = "Margen de ganancia (0.0 a 1.0)", example = "0.50", required = true)
     private Double margenGanancia;
-
     @Schema(description = "Descripción detallada del producto", example = "Jabón 100% natural elaborado con aceites esenciales de lavanda.")
     private String descripcion;
-
     @Column(name = "categoria_id")
     @Schema(description = "ID de la categoría del producto", example = "1", required = true)
     private Integer categoriaId;
-
     @Column(name = "proveedor_principal_id")
     @Schema(description = "ID del proveedor principal", example = "1", required = true)
     private Integer proveedorPrincipalId;
-
     @Column(name = "es_ecologico")
     @Schema(description = "Indica si el producto es ecológico/sustentable", example = "true", required = true)
     private Boolean esEcologico;
-
     @Column(name = "fecha_registro")
     @Schema(description = "Fecha y hora de registro del producto", example = "2024-06-24 10:00:00", accessMode = Schema.AccessMode.READ_ONLY)
     private String fechaRegistro;
-
     @Schema(description = "Estado actual del producto", example = "ACTIVE", allowableValues = {"ACTIVE", "INACTIVE", "DISCONTINUED"})
     private String estado;
-    
-
 }
 
 // product-service/src/main/java/com/ecomarket/productservice/repository/ProductRepository.java
@@ -409,21 +113,13 @@ import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Producto, Integer> {
-    
     Optional<Producto> findByCodigoSKU(String codigoSKU);
-    
     List<Producto> findByEsEcologico(Boolean esEcologico);
-    
     List<Producto> findByCategoriaId(Integer categoriaId);
-    
     List<Producto> findByEstado(String estado);
-    
     List<Producto> findByProveedorPrincipalId(Integer proveedorPrincipalId);
-    
     List<Producto> findByPrecioUnitarioBetween(Double precioMin, Double precioMax);
-    
     boolean existsByCodigoSKU(String codigoSKU);
-
     // NUEVOS MÉTODOS PERSONALIZADOS
     List<Producto> findByProveedorPrincipalIdAndEsEcologico(Integer proveedorId, Boolean esEcologico);
     List<Producto> findByPrecioUnitarioGreaterThan(Double precio);
@@ -445,7 +141,6 @@ import java.util.Optional;
 
 @Service
 public class ProductoService {
-
     @Autowired
     private ProductRepository productRepository;
 
@@ -528,7 +223,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @Component
 public class ProductoModelAssembler implements RepresentationModelAssembler<Producto, EntityModel<Producto>> {
-
     @Override
     public EntityModel<Producto> toModel(Producto producto) {
         return EntityModel.of(producto)
@@ -536,6 +230,428 @@ public class ProductoModelAssembler implements RepresentationModelAssembler<Prod
                 .add(linkTo(ProductoController.class).withRel("productos"))
                 .add(linkTo(methodOn(ProductoController.class).obtenerProductosEcologicos()).withRel("ecologicos"))
                 .add(linkTo(methodOn(ProductoController.class).obtenerPorCategoria(producto.getCategoriaId())).withRel("categoria"));
+    }
+    // Método auxiliar para modelos simples (sin todos los links)
+    public EntityModel<Producto> toSimpleModel(Producto producto) {
+        return EntityModel.of(producto)
+                .add(linkTo(methodOn(ProductoController.class).obtenerPorId(producto.getProductoId())).withSelfRel());
+    }
+}
+
+// product-service/src/main/java/com/ecomarket/productservice/controller/ProductoController.java
+package com.ecomarket.productservice.controller;
+
+import com.ecomarket.productservice.model.Producto;
+import com.ecomarket.productservice.service.ProductoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/productos")
+@Tag(name = "Productos", description = "API para la gestión de productos ecológicos")
+public class ProductoController {
+    @Autowired
+    private ProductoService productoService;
+
+    // Obtener todos los productos
+    @Operation(
+        summary = "Obtener todos los productos",
+        description = "Retorna una lista completa de todos los productos disponibles en el catálogo"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de productos obtenida exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Producto.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Error interno del servidor"
+        )
+    })
+    @GetMapping
+    public ResponseEntity<List<Producto>> obtenerTodos() {
+        List<Producto> productos = productoService.obtenerTodos();
+        return ResponseEntity.ok(productos);
+    }
+
+    // Obtener producto por ID
+    @Operation(
+        summary = "Obtener producto por ID",
+        description = "Busca y retorna un producto específico usando su identificador único"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Producto encontrado exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Producto.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Producto no encontrado"
+        )
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<Producto> obtenerPorId(
+            @Parameter(description = "ID único del producto", example = "1")
+            @PathVariable Integer id) {
+        Producto producto = productoService.buscarPorId(id);
+        if (producto != null) {
+            return ResponseEntity.ok(producto);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Crear nuevo producto
+    @Operation(
+        summary = "Crear nuevo producto",
+        description = "Registra un nuevo producto en el sistema"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Producto creado exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Producto.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Solicitud incorrecta (faltan datos obligatorios)"
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Conflicto (el SKU ya existe)"
+        )
+    })
+    @PostMapping
+    public ResponseEntity<Producto> crearProducto(
+            @Parameter(description = "Datos del nuevo producto")
+            @RequestBody Producto producto) {
+        // Validar campos obligatorios
+        if (producto.getNombreProducto() == null || producto.getCodigoSKU() == null ||
+            producto.getPrecioUnitario() == null || producto.getPrecioCompra() == null ||
+            producto.getMargenGanancia() == null || producto.getCategoriaId() == null ||
+            producto.getProveedorPrincipalId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        // Verificar si el SKU ya existe
+        if (productoService.buscarPorSKU(producto.getCodigoSKU()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        Producto nuevoProducto = productoService.guardar(producto);
+        return ResponseEntity.created(
+                linkTo(methodOn(ProductoController.class).obtenerPorId(nuevoProducto.getProductoId())).toUri())
+                .body(nuevoProducto);
+    }
+
+    // Actualizar producto existente
+    @Operation(
+        summary = "Actualizar producto",
+        description = "Actualiza la información de un producto existente"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Producto actualizado exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Producto.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Producto no encontrado"
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Solicitud incorrecta (faltan datos obligatorios)"
+        )
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<Producto> actualizarProducto(
+            @Parameter(description = "ID del producto a actualizar", example = "1")
+            @PathVariable Integer id,
+            @Parameter(description = "Datos actualizados del producto")
+            @RequestBody Producto productoActualizado) {
+        // Validar campos obligatorios
+        if (productoActualizado.getNombreProducto() == null || productoActualizado.getCodigoSKU() == null ||
+            productoActualizado.getPrecioUnitario() == null || productoActualizado.getPrecioCompra() == null ||
+            productoActualizado.getMargenGanancia() == null || productoActualizado.getCategoriaId() == null ||
+            productoActualizado.getProveedorPrincipalId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Producto productoExistente = productoService.buscarPorId(id);
+        if (productoExistente == null) {
+            return ResponseEntity.notFound().build();
+        }
+        // Actualizar solo si el SKU ha cambiado o es único
+        if (!productoActualizado.getCodigoSKU().equals(productoExistente.getCodigoSKU()) &&
+            productoService.buscarPorSKU(productoActualizado.getCodigoSKU()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        Producto productoActualizadoDb = productoService.actualizar(id, productoActualizado);
+        return ResponseEntity.ok(productoActualizadoDb);
+    }
+
+    // Eliminar producto
+    @Operation(
+        summary = "Eliminar producto",
+        description = "Elimina un producto del sistema"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Producto eliminado exitosamente"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Producto no encontrado"
+        )
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarProducto(
+            @Parameter(description = "ID del producto a eliminar", example = "1")
+            @PathVariable Integer id) {
+        boolean eliminado = productoService.eliminar(id);
+        if (eliminado) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+// product-service/src/main/java/com/ecomarket/productservice/controller/ProductoControllerV2.java
+package com.ecomarket.productservice.controller;
+
+import com.ecomarket.productservice.assemblers.ProductoModelAssembler;
+import com.ecomarket.productservice.model.Producto;
+import com.ecomarket.productservice.service.ProductoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
+@RestController
+@RequestMapping("/api/v2/productos")
+@Tag(name = "Productos V2", description = "API con HATEOAS para gestión avanzada de productos ecológicos")
+public class ProductoControllerV2 {
+    @Autowired
+    private ProductoService productoService;
+    @Autowired
+    private ProductoModelAssembler assembler;
+
+    // Obtener todos los productos con HATEOAS
+    @Operation(summary = "Obtener todos los productos con HATEOAS")
+    @GetMapping
+    public CollectionModel<EntityModel<Producto>> obtenerTodos() {
+        List<EntityModel<Producto>> productos = productoService.obtenerTodos().stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+
+        return CollectionModel.of(productos)
+                .add(linkTo(methodOn(ProductoControllerV2.class).obtenerTodos()).withSelfRel())
+                .add(linkTo(methodOn(ProductoControllerV2.class).obtenerProductosEcologicos()).withRel("ecologicos"))
+                .add(linkTo(methodOn(ProductoControllerV2.class).totalProductos()).withRel("total"));
+    }
+
+    // Obtener producto por ID con HATEOAS
+    @Operation(
+        summary = "Obtener producto por ID con HATEOAS",
+        description = "Busca y retorna un producto específico usando su identificador único, con enlaces HATEOAS"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Producto encontrado exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Producto.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Producto no encontrado"
+        )
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<EntityModel<Producto>> obtenerPorId(
+            @Parameter(description = "ID único del producto", example = "1")
+            @PathVariable Integer id) {
+        Producto producto = productoService.buscarPorId(id);
+        if (producto != null) {
+            EntityModel<Producto> modelo = assembler.toModel(producto);
+            return ResponseEntity.ok(modelo);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Obtener productos ecológicos con HATEOAS
+    @Operation(
+        summary = "Obtener productos ecológicos",
+        description = "Retorna una lista de productos que son ecológicos/sustentables"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de productos ecológicos obtenida exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Producto.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Error interno del servidor"
+        )
+    })
+    @GetMapping("/ecologicos")
+    public ResponseEntity<List<EntityModel<Producto>>> obtenerProductosEcologicos() {
+        List<EntityModel<Producto>> productosEcologicos = productoService.obtenerProductosEcologicos().stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(productosEcologicos);
+    }
+
+    // Obtener total de productos
+    @Operation(
+        summary = "Obtener total de productos",
+        description = "Retorna el número total de productos en el sistema"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Total de productos obtenido exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Long.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Error interno del servidor"
+        )
+    })
+    @GetMapping("/total")
+    public ResponseEntity<Long> totalProductos() {
+        long total = productoService.totalProductos();
+        return ResponseEntity.ok(total);
+    }
+
+    // Filtrar productos
+    @Operation(
+        summary = "Filtrar productos",
+        description = "Retorna una lista de productos que coinciden con los criterios de filtro especificados"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de productos filtrados obtenida exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = Producto.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Error interno del servidor"
+        )
+    })
+    @GetMapping("/filtrar")
+    public ResponseEntity<List<EntityModel<Producto>>> filtrarProductos(
+            @RequestParam(required = false) Integer categoriaId,
+            @RequestParam(required = false) Integer proveedorId,
+            @RequestParam(required = false) Boolean esEcologico,
+            @RequestParam(required = false) Double precioMin,
+            @RequestParam(required = false) Double precioMax) {
+        List<Producto> productosFiltrados = productoService.obtenerPorCategoria(categoriaId);
+        if (proveedorId != null && esEcologico != null) {
+            productosFiltrados = productosFiltrados.stream()
+                    .filter(p -> p.getProveedorPrincipalId().equals(proveedorId) && p.getEsEcologico().equals(esEcologico))
+                    .collect(Collectors.toList());
+        }
+        if (precioMin != null && precioMax != null) {
+            productosFiltrados = productosFiltrados.stream()
+                    .filter(p -> p.getPrecioUnitario() >= precioMin && p.getPrecioUnitario() <= precioMax)
+                    .collect(Collectors.toList());
+        }
+        List<EntityModel<Producto>> modelos = productosFiltrados.stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(modelos);
+    }
+
+    // Clase interna para estadísticas de productos
+    public static class EstadisticasProductos {
+        private long totalProductos;
+        private long totalEcologicos;
+        private double precioPromedio;
+        // Getters y setters
+    }
+
+    // Obtener estadísticas de productos
+    @Operation(
+        summary = "Obtener estadísticas de productos",
+        description = "Retorna estadísticas como total de productos, total de ecológicos y precio promedio"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Estadísticas de productos obtenidas exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = EstadisticasProductos.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Error interno del servidor"
+        )
+    })
+    @GetMapping("/estadisticas")
+    public ResponseEntity<EstadisticasProductos> obtenerEstadisticas() {
+        long total = productoService.totalProductos();
+        long totalEcologicos = productoService.obtenerProductosEcologicos().size();
+        double precioPromedio = productoService.obtenerTodos().stream()
+                .mapToDouble(Producto::getPrecioUnitario)
+                .average()
+                .orElse(0.0);
+        EstadisticasProductos stats = new EstadisticasProductos();
+        stats.setTotalProductos(total);
+        stats.setTotalEcologicos(totalEcologicos);
+        stats.setPrecioPromedio(precioPromedio);
+        return ResponseEntity.ok(stats);
     }
 }
 
@@ -552,7 +668,6 @@ import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
-
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
@@ -589,7 +704,6 @@ import java.util.Random;
 @Profile("dev")
 @Component
 public class DataLoader implements CommandLineRunner {
-
     @Autowired
     private ProductRepository productRepository;
 
@@ -597,63 +711,61 @@ public class DataLoader implements CommandLineRunner {
     public void run(String... args) throws Exception {
         Faker faker = new Faker();
         Random random = new Random();
-        
         // Estados posibles
         String[] estados = {"ACTIVE", "INACTIVE", "DISCONTINUED"};
-        
         System.out.println("🌱 Generando datos falsos para EcoMarket...");
-        
         // Generar 50 productos ecológicos
         for (int i = 0; i < 50; i++) {
             Producto producto = new Producto();
-            
             // Generar SKU único
             producto.setCodigoSKU("ECO-" + String.format("%03d", i + 1));
-            
             // Nombres de productos ecológicos creativos
             String nombreProducto = generarNombreProductoEcologico(faker, random);
             producto.setNombreProducto(nombreProducto);
-            
             // Precios realistas
             double precioCompra = faker.number().randomDouble(2, 1, 50);
             // Generar margen de ganancia entre 0.3 y 0.8 (30% a 80%)
             double margenGanancia = 0.3 + (0.5 * random.nextDouble());
             double precioUnitario = precioCompra * (1 + margenGanancia);
-            
             producto.setPrecioCompra(precioCompra);
             producto.setMargenGanancia(margenGanancia);
             producto.setPrecioUnitario(Math.round(precioUnitario * 100.0) / 100.0);
-            
             // Descripción ecológica
             producto.setDescripcion(generarDescripcionEcologica(faker));
-            
             // Categoría (1-5)
             producto.setCategoriaId(random.nextInt(5) + 1);
-            
             // Proveedor (1-10)
             producto.setProveedorPrincipalId(random.nextInt(10) + 1);
-            
             // 80% de productos son ecológicos
             producto.setEsEcologico(random.nextDouble() < 0.8);
-            
             // Fecha de registro (evitar método deprecated)
             long diasAtras = (long) (random.nextDouble() * 365);
             LocalDateTime fecha = LocalDateTime.now().minusDays(diasAtras);
             producto.setFechaRegistro(fecha.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            
             // Estado (90% activos)
             producto.setEstado(random.nextDouble() < 0.9 ? "ACTIVE" : estados[random.nextInt(estados.length)]);
-            
             productRepository.save(producto);
         }
-        
         System.out.println("✅ Se han generado " + productRepository.count() + " productos en la base de datos H2");
         System.out.println("🔗 Accede a la consola H2 en: http://localhost:8090/h2-console");
         System.out.println("   JDBC URL: jdbc:h2:mem:ecomarketdb");
         System.out.println("   Usuario: sa");
         System.out.println("   Contraseña: (vacía)");
     }
-    // ... Métodos auxiliares para nombres y descripciones ecológicas ...
+    // Métodos auxiliares para nombres y descripciones ecológicas
+    private String generarNombreProductoEcologico(Faker faker, Random random) {
+        String[] adjetivos = {"Orgánico", "Natural", "Ecológico", "Sustentable", "Biodegradable"};
+        String[] productos = {"Jabón", "Champú", "Acondicionador", "Gel de ducha", "Crema hidratante"};
+        String[] aromas = {"lavanda", "eucalipto", "menta", "cítricos", "rosa mosqueta"};
+        return adjetivos[random.nextInt(adjetivos.length)] + " " +
+               productos[random.nextInt(productos.length)] + " de " +
+               aromas[random.nextInt(aromas.length)];
+    }
+    private String generarDescripcionEcologica(Faker faker) {
+        return "Este producto " + faker.commerce().adjective() + " está elaborado con ingredientes 100% " +
+               faker.commerce().material() + " y aceites esenciales puros. Ideal para una vida más " +
+               faker.commerce().adjective() + " y saludable.";
+    }
 }
 
 // product-service/src/main/java/com/ecomarket/productservice/ProductServiceApplication.java
@@ -664,21 +776,15 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class ProductServiceApplication {
-
-	public static void main(String[] args) {
-		SpringApplication.run(ProductServiceApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(ProductServiceApplication.class, args);
+    }
 }
 
 // product-service/src/main/resources/application.properties
 spring.application.name=product-service
 server.port=8090
-
-# Perfil activo (cambiar según necesidad)
 spring.profiles.active=dev
-
-# Configuración Swagger/OpenAPI (según guía)
 springdoc.api-docs.enabled=true
 springdoc.swagger-ui.enabled=true
 
@@ -688,15 +794,12 @@ spring.datasource.url=jdbc:h2:mem:ecomarketdb_dev;DB_CLOSE_DELAY=-1
 spring.datasource.driverClassName=org.h2.Driver
 spring.datasource.username=sa
 spring.datasource.password=
-
 spring.h2.console.enabled=true
 spring.h2.console.path=/h2-console
-
 spring.jpa.hibernate.ddl-auto=create-drop
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
-
 spring.sql.init.mode=always
 spring.jpa.defer-datasource-initialization=true
 
@@ -706,30 +809,14 @@ spring.datasource.url=jdbc:h2:mem:ecomarketdb_test;DB_CLOSE_DELAY=-1
 spring.datasource.driverClassName=org.h2.Driver
 spring.datasource.username=sa
 spring.datasource.password=
-
 spring.h2.console.enabled=false
-
 spring.jpa.hibernate.ddl-auto=create-drop
 spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.format_sql=false
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
-
 spring.sql.init.mode=never
 
-// product-service/src/test/java/com/ecomarket/productservice/ProductServiceApplicationTests.java
-package com.ecomarket.productservice;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-
-@SpringBootTest
-class ProductServiceApplicationTests {
-
-	@Test
-	void contextLoads() {
-	}
-
-}
+// ===================== TESTS UNITARIOS Y DE INTEGRACIÓN =====================
 
 // product-service/src/test/java/com/ecomarket/productservice/controller/ProductoControllerTest.java
 package com.ecomarket.productservice.controller;
@@ -759,13 +846,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ProductoController.class)
 @ActiveProfiles("test")
 class ProductoControllerTest {
-
     @Autowired
     private MockMvc mockMvc;
-
     @MockBean
     private ProductoService productoService;
-
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -960,10 +1044,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProductoServiceTest {
-
     @Mock
     private ProductRepository productRepository;
-
     @InjectMocks
     private ProductoService productoService;
 

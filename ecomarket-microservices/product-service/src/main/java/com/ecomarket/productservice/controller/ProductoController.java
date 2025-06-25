@@ -2,13 +2,6 @@ package com.ecomarket.productservice.controller;
 
 import com.ecomarket.productservice.model.Producto;
 import com.ecomarket.productservice.service.ProductoService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,60 +11,58 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/productos")
-@Tag(name = "Productos", description = "API para la gestión de productos ecológicos")
 public class ProductoController {
     
     @Autowired
     private ProductoService productoService;
     
-    // Obtener todos los productos
-    @Operation(
-        summary = "Obtener todos los productos",
-        description = "Retorna una lista completa de todos los productos disponibles en el catálogo"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
-            description = "Lista de productos obtenida exitosamente",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = Producto.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "500", 
-            description = "Error interno del servidor"
-        )
-    })
+    /**
+     * GET /api/v1/productos
+     * Obtiene la lista completa de productos registrados en el sistema.
+     * 
+     * @return 200 OK con la lista de productos, 500 si ocurre un error interno.
+     * 
+     * Ejemplo de respuesta:
+     * [
+     *   {
+     *     "productoId": 1,
+     *     "nombreProducto": "Jabón de lavanda orgánico",
+     *     "codigoSKU": "ECO-001",
+     *     "precioUnitario": 12.99,
+     *     "precioCompra": 6.50,
+     *     "margenGanancia": 0.5,
+     *     "descripcion": "Jabón 100% natural elaborado con aceites esenciales de lavanda.",
+     *     "categoriaId": 1,
+     *     "proveedorPrincipalId": 1,
+     *     "esEcologico": true,
+     *     "fechaRegistro": "2025-06-25 10:00:00",
+     *     "estado": "ACTIVE"
+     *   },
+     *   ...
+     * ]
+     */
     @GetMapping
     public ResponseEntity<List<Producto>> obtenerTodos() {
         List<Producto> productos = productoService.obtenerTodos();
         return ResponseEntity.ok(productos);
     }
     
-    // Obtener producto por ID
-    @Operation(
-        summary = "Obtener producto por ID",
-        description = "Busca y retorna un producto específico usando su identificador único"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
-            description = "Producto encontrado exitosamente",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = Producto.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "404", 
-            description = "Producto no encontrado"
-        )
-    })
+    /**
+     * GET /api/v1/productos/{id}
+     * Busca y retorna un producto específico usando su identificador único.
+     * 
+     * @param id ID único del producto
+     * @return 200 OK con el producto, 404 si no existe
+     * 
+     * Ejemplo de respuesta:
+     * {
+     *   "productoId": 1,
+     *   "nombreProducto": "Jabón de lavanda orgánico",
+     *   ...
+     * }
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<Producto> obtenerPorId(
-            @Parameter(description = "ID único del producto", example = "1")
-            @PathVariable Integer id) {
+    public ResponseEntity<Producto> obtenerPorId(@PathVariable Integer id) {
         Producto producto = productoService.buscarPorId(id);
         if (producto != null) {
             return ResponseEntity.ok(producto);
@@ -80,29 +71,22 @@ public class ProductoController {
         }
     }
     
-    // Buscar producto por SKU
-    @Operation(
-        summary = "Buscar producto por SKU",
-        description = "Encuentra un producto usando su código SKU único"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
-            description = "Producto encontrado por SKU",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = Producto.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "404", 
-            description = "Producto no encontrado con ese SKU"
-        )
-    })
+    /**
+     * GET /api/v1/productos/sku/{sku}
+     * Permite a los clientes encontrar un producto usando su código SKU único.
+     * 
+     * @param sku Código SKU del producto
+     * @return 200 OK con el producto, 404 si no existe
+     * 
+     * Ejemplo de respuesta:
+     * {
+     *   "productoId": 1,
+     *   "nombreProducto": "Jabón de lavanda orgánico",
+     *   ...
+     * }
+     */
     @GetMapping("/sku/{sku}")
-    public ResponseEntity<Producto> obtenerPorSKU(
-            @Parameter(description = "Código SKU del producto", example = "ECO-001")
-            @PathVariable String sku) {
+    public ResponseEntity<Producto> obtenerPorSKU(@PathVariable String sku) {
         Producto producto = productoService.buscarPorSKU(sku);
         if (producto != null) {
             return ResponseEntity.ok(producto);
@@ -111,58 +95,51 @@ public class ProductoController {
         }
     }
     
-    // Crear nuevo producto
-    @Operation(
-        summary = "Crear nuevo producto",
-        description = "Registra un nuevo producto en el catálogo de EcoMarket"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "201", 
-            description = "Producto creado exitosamente",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = Producto.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "400", 
-            description = "Datos de entrada inválidos"
-        )
-    })
+    /**
+     * POST /api/v1/productos
+     * Registra un nuevo producto en el catálogo de EcoMarket.
+     * 
+     * @param producto Datos del nuevo producto
+     * @return 201 Created con el producto creado
+     * 
+     * Ejemplo de request:
+     * {
+     *   "nombreProducto": "Jabón ecológico de menta",
+     *   "codigoSKU": "ECO-999",
+     *   "precioUnitario": 15.0,
+     *   "precioCompra": 8.0,
+     *   "margenGanancia": 0.47,
+     *   "descripcion": "Jabón natural y refrescante",
+     *   "categoriaId": 2,
+     *   "proveedorPrincipalId": 1,
+     *   "esEcologico": true,
+     *   "fechaRegistro": "2025-06-25 10:00:00",
+     *   "estado": "ACTIVE"
+     * }
+     * 
+     * Ejemplo de respuesta:
+     * {
+     *   "productoId": 51,
+     *   "nombreProducto": "Jabón ecológico de menta",
+     *   ...
+     * }
+     */
     @PostMapping
-    public ResponseEntity<Producto> crear(
-            @Parameter(description = "Datos del nuevo producto")
-            @RequestBody Producto producto) {
+    public ResponseEntity<Producto> crear(@RequestBody Producto producto) {
         Producto nuevoProducto = productoService.guardar(producto);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoProducto);
     }
     
-    // Actualizar producto
-    @Operation(
-        summary = "Actualizar producto existente",
-        description = "Modifica los datos de un producto existente en el catálogo"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
-            description = "Producto actualizado exitosamente",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = Producto.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "404", 
-            description = "Producto no encontrado para actualizar"
-        )
-    })
+    /**
+     * PUT /api/v1/productos/{id}
+     * Modifica los datos de un producto existente en el catálogo.
+     * 
+     * @param id ID del producto a actualizar
+     * @param producto Nuevos datos del producto
+     * @return 200 OK con el producto actualizado, 404 si no existe
+     */
     @PutMapping("/{id}")
-    public ResponseEntity<Producto> actualizar(
-            @Parameter(description = "ID del producto a actualizar", example = "1")
-            @PathVariable Integer id,
-            @Parameter(description = "Nuevos datos del producto")
-            @RequestBody Producto producto) {
+    public ResponseEntity<Producto> actualizar(@PathVariable Integer id, @RequestBody Producto producto) {
         Producto productoActualizado = productoService.actualizar(id, producto);
         if (productoActualizado != null) {
             return ResponseEntity.ok(productoActualizado);
@@ -171,25 +148,15 @@ public class ProductoController {
         }
     }
     
-    // Eliminar producto
-    @Operation(
-        summary = "Eliminar producto",
-        description = "Elimina permanentemente un producto del catálogo"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "204", 
-            description = "Producto eliminado exitosamente"
-        ),
-        @ApiResponse(
-            responseCode = "404", 
-            description = "Producto no encontrado para eliminar"
-        )
-    })
+    /**
+     * DELETE /api/v1/productos/{id}
+     * Elimina permanentemente un producto del catálogo.
+     * 
+     * @param id ID del producto a eliminar
+     * @return 204 No Content si se elimina, 404 si no existe
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(
-            @Parameter(description = "ID del producto a eliminar", example = "1")
-            @PathVariable Integer id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
         boolean eliminado = productoService.eliminar(id);
         if (eliminado) {
             return ResponseEntity.noContent().build();
@@ -198,63 +165,39 @@ public class ProductoController {
         }
     }
     
-    // Endpoints adicionales
-    
-    // Total de productos
-    @Operation(
-        summary = "Obtener total de productos",
-        description = "Retorna la cantidad total de productos registrados en el sistema"
-    )
-    @ApiResponse(
-        responseCode = "200", 
-        description = "Total de productos obtenido exitosamente",
-        content = @Content(
-            mediaType = "application/json",
-            schema = @Schema(implementation = Integer.class)
-        )
-    )
+    /**
+     * GET /api/v1/productos/total
+     * Retorna la cantidad total de productos registrados en el sistema.
+     * 
+     * @return 200 OK con el total de productos
+     */
     @GetMapping("/total")
     public ResponseEntity<Integer> totalProductos() {
         int total = productoService.totalProductos();
         return ResponseEntity.ok(total);
     }
     
-    // Productos ecológicos
-    @Operation(
-        summary = "Obtener productos ecológicos",
-        description = "Retorna todos los productos marcados como ecológicos/sustentables"
-    )
-    @ApiResponse(
-        responseCode = "200", 
-        description = "Lista de productos ecológicos obtenida exitosamente",
-        content = @Content(
-            mediaType = "application/json",
-            schema = @Schema(implementation = Producto.class)
-        )
-    )
+    /**
+     * GET /api/v1/productos/ecologicos
+     * Retorna todos los productos marcados como ecológicos/sustentables.
+     * 
+     * @return 200 OK con la lista de productos ecológicos
+     */
     @GetMapping("/ecologicos")
     public ResponseEntity<List<Producto>> obtenerProductosEcologicos() {
         List<Producto> ecologicos = productoService.obtenerProductosEcologicos();
         return ResponseEntity.ok(ecologicos);
     }
     
-    // Productos por categoría
-    @Operation(
-        summary = "Obtener productos por categoría",
-        description = "Filtra y retorna productos pertenecientes a una categoría específica"
-    )
-    @ApiResponse(
-        responseCode = "200", 
-        description = "Productos de la categoría obtenidos exitosamente",
-        content = @Content(
-            mediaType = "application/json",
-            schema = @Schema(implementation = Producto.class)
-        )
-    )
+    /**
+     * GET /api/v1/productos/categoria/{categoriaId}
+     * Filtra y retorna productos pertenecientes a una categoría específica.
+     * 
+     * @param categoriaId ID de la categoría
+     * @return 200 OK con la lista de productos de la categoría
+     */
     @GetMapping("/categoria/{categoriaId}")
-    public ResponseEntity<List<Producto>> obtenerPorCategoria(
-            @Parameter(description = "ID de la categoría", example = "1")
-            @PathVariable Integer categoriaId) {
+    public ResponseEntity<List<Producto>> obtenerPorCategoria(@PathVariable Integer categoriaId) {
         List<Producto> productos = productoService.obtenerPorCategoria(categoriaId);
         return ResponseEntity.ok(productos);
     }

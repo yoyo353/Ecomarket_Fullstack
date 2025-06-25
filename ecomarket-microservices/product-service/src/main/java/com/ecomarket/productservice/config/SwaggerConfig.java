@@ -1,5 +1,8 @@
 package com.ecomarket.productservice.config;
 
+// Configuración de Swagger/OpenAPI para la documentación interactiva de la API.
+// Permite personalizar la información pública de la API y los servidores disponibles.
+// Mejora la experiencia de integración y pruebas para desarrolladores y clientes externos.
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.servers.Server;
@@ -11,6 +14,11 @@ import java.util.List;
 @Configuration
 public class SwaggerConfig {
 
+    /**
+     * Bean que configura la instancia principal de OpenAPI para Swagger UI.
+     * Se personaliza el título, versión, descripción y los servidores (dev y producción).
+     * Esto permite que la documentación refleje el entorno real y facilite pruebas desde Swagger UI.
+     */
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()

@@ -1,5 +1,8 @@
 package com.ecomarket.productservice.controller;
 
+// Controlador REST v2 que implementa HATEOAS y endpoints avanzados para productos ecológicos.
+// Permite la navegación hipermedia, filtros, estadísticas y operaciones CRUD enriquecidas.
+// Se diseñó para cumplir con mejores prácticas REST y facilitar la exploración dinámica de la API.
 import com.ecomarket.productservice.assemblers.ProductoModelAssembler;
 import com.ecomarket.productservice.model.Producto;
 import com.ecomarket.productservice.service.ProductoService;
@@ -32,6 +35,8 @@ public class ProductoControllerV2 {
     @Autowired
     private ProductoModelAssembler assembler;
 
+    // Endpoint que retorna todos los productos con enlaces HATEOAS.
+    // Permite a los clientes descubrir acciones relacionadas y navegar la API de forma dinámica.
     @Operation(
         summary = "Obtener todos los productos con HATEOAS",
         description = "Retorna una lista completa de productos con enlaces de navegación hipermedia"
@@ -43,6 +48,7 @@ public class ProductoControllerV2 {
                 .map(assembler::toModel)
                 .collect(Collectors.toList());
 
+        // Se agregan enlaces globales para facilitar la exploración de la API desde el cliente.
         return CollectionModel.of(productos)
                 .add(linkTo(methodOn(ProductoControllerV2.class).obtenerTodos()).withSelfRel())
                 .add(linkTo(ProductoControllerV2.class).withRel("crear").withTitle("Crear producto"))
@@ -51,6 +57,8 @@ public class ProductoControllerV2 {
                 .add(linkTo(methodOn(ProductoControllerV2.class).totalProductos()).withRel("estadisticas"));
     }
 
+    // Endpoint para obtener un producto por ID con enlaces HATEOAS.
+    // Permite a los clientes descubrir acciones relacionadas con ese producto.
     @Operation(
         summary = "Obtener producto por ID con HATEOAS",
         description = "Busca un producto específico y retorna todos sus enlaces relacionados"

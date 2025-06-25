@@ -6,6 +6,8 @@ import com.ecomarket.notificationservice.model.Notification;
 import com.ecomarket.notificationservice.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -13,34 +15,41 @@ import java.util.Optional;
 @RequestMapping("/api/v1/notifications")
 public class NotificationController {
 
-    @Autowired
-    private NotificationService notificationService;
+    private final NotificationService notificationService;
 
-    @PostMapping("/stock")
-    public String handleStockUpdate(@RequestBody StockRequest request) {
-        return notificationService.checkStock(
-            request.getProductId(),
-            request.getProductName(),
-            request.getStock()
-        );
+    @Autowired
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
-    @PutMapping("/stock")
-    public String updateStock(@RequestBody StockRequest request) {
-        return notificationService.checkStock(
+    @PostMapping("/stock-alert")
+    public ResponseEntity<String> handleStockUpdate(@RequestBody StockRequest request) {
+        String msg = notificationService.checkStock(
             request.getProductId(),
             request.getProductName(),
             request.getStock()
         );
+        return ResponseEntity.ok(msg);
+    }
+
+    @PutMapping("/stock-alert")
+    public ResponseEntity<String> updateStock(@RequestBody StockRequest request) {
+        String msg = notificationService.checkStock(
+            request.getProductId(),
+            request.getProductName(),
+            request.getStock()
+        );
+        return ResponseEntity.ok(msg);
     }
 
     @PostMapping("/delivery")
-    public String notifyDeliveryStatus(@RequestBody DeliveryStatusRequest request) {
-        return notificationService.notifyDeliveryStatus(
+    public ResponseEntity<String> notifyDeliveryStatus(@RequestBody DeliveryStatusRequest request) {
+        String msg = notificationService.notifyDeliveryStatus(
             request.getProductId(),
             request.getProductName(),
             request.getStatus()
         );
+        return ResponseEntity.ok(msg);
     }
 
     @GetMapping
@@ -49,8 +58,10 @@ public class NotificationController {
     }
 
     @GetMapping("/{id}")
-    public Optional<Notification> getById(@PathVariable Long id) {
-        return notificationService.getNotificationById(id);
+    public ResponseEntity<Notification> getById(@PathVariable Long id) {
+        return notificationService.getNotificationById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/type/{type}")

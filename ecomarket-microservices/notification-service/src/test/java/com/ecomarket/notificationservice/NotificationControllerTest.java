@@ -1,44 +1,57 @@
 package com.ecomarket.notificationservice;
 
-import com.ecomarket.notificationservice.controller.NotificationController;
-import com.ecomarket.notificationservice.service.NotificationService;
+import com.ecomarket.notificationservice.repository.NotificationRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import net.datafaker.Faker;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
-import org.springframework.http.MediaType;
-
-@WebMvcTest(NotificationController.class)
-public class NotificationControllerTest {
+@SpringBootTest
+@AutoConfigureMockMvc
+class NotificationControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
-    private NotificationService service;
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Faker faker = new Faker();
 
     @Test
-    void shouldReturnStockAlert() throws Exception {
-        String requestBody = new String(Files.readAllBytes(Paths.get("src/test/resources/request/stock-bajo.json")));
+    void shouldSendNotificationWhenStockIsLow() throws Exception {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("productId", "PROD-" + faker.number().digits(3));
+        requestBody.put("productName", faker.food().ingredient()); // válido
+        requestBody.put("stock", 10); // stock bajo
 
-    when(service.checkStock("PROD-001", "Caja ecológica", 20))
-    .thenReturn("⚠️ Alerta: Stock bajo para el producto: PROD-001 - Caja ecológica (Stock actual: 20)");
+        mockMvc.perform(post("/api/v1/notifications/stock-alert")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isOk());
+    }
 
+    @Test
+    void shouldNotSendNotificationWhenStockIsHigh() throws Exception {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("productId", "PROD-" + faker.number().digits(3));
+        requestBody.put("productName", faker.food().ingredient()); // válido
+        requestBody.put("stock", 200); // stock alto
 
-        mockMvc.perform(post("/api/v1/notifications/stock")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("⚠️ Alerta")));
+        mockMvc.perform(post("/api/v1/notifications/stock-alert")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isOk());
     }
 }

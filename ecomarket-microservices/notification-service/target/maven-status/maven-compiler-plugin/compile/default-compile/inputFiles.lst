@@ -1,7 +1,7 @@
+/Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/repository/NotificationRepository.java
 /Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/NotificationServiceApplication.java
 /Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/controller/NotificationController.java
 /Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/model/DeliveryStatusRequest.java
 /Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/model/Notification.java
 /Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/model/StockRequest.java
-/Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/repository/NotificationRepository.java
 /Users/jaimeluna/Proyectos/Ecomarket_Fullstack/ecomarket-microservices/notification-service/src/main/java/com/ecomarket/notificationservice/service/NotificationService.java

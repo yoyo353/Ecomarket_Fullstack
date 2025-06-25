@@ -1,0 +1,351 @@
+//micrioservicio de pedidos
+//Estructura del proyecto:
+
+order-service/
+└── src/
+    └── main/
+        └── java/
+            └── com/
+                └── ecomarket/
+                    └── orderservice/
+                        ├── controller/
+                        ├── service/
+                        ├── repository/
+                        ├── model/
+                        └── assembler/
+                        // Puedes agregar aquí otros packages como config/ si existen
+
+// .../model/Pedido.java
+package com.ecomarket.orderservice.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+import java.util.List;
+
+@Entity
+@Table(name = "pedido")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Pedido {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer pedidoId;
+
+    @Column(name = "usuario_id")
+    private Integer usuarioId;
+
+    @Column(name = "fecha_pedido")
+    private Date fechaPedido;
+
+    @Column(name = "estado")
+    private String estado;
+
+    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
+    private List<DetallePedido> detalles;
+}
+
+// .../model/DetallePedido.java
+package com.ecomarket.orderservice.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "detalle_pedido")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class DetallePedido {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer detallePedidoId;
+
+    @ManyToOne
+    @JoinColumn(name = "pedido_id")
+    private Pedido pedido;
+
+    @Column(name = "producto_id")
+    private Integer productoId;
+
+    @Column(name = "cantidad")
+    private Integer cantidad;
+
+    @Column(name = "precio_unitario")
+    private Double precioUnitario;
+}
+
+// .../repository/PedidoRepository.java
+package com.ecomarket.orderservice.repository;
+
+import com.ecomarket.orderservice.model.Pedido;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
+    List<Pedido> findByUsuarioId(Integer usuarioId);
+}
+
+// .../repository/DetallePedidoRepository.java
+package com.ecomarket.orderservice.repository;
+
+import com.ecomarket.orderservice.model.DetallePedido;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface DetallePedidoRepository extends JpaRepository<DetallePedido, Integer> {
+}
+
+// .../service/PedidoService.java
+package com.ecomarket.orderservice.service;
+
+import com.ecomarket.orderservice.model.Pedido;
+import com.ecomarket.orderservice.repository.PedidoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class PedidoService {
+
+    @Autowired
+    private PedidoRepository pedidoRepository;
+
+    public List<Pedido> obtenerTodos() {
+        return pedidoRepository.findAll();
+    }
+
+    public Pedido buscarPorId(Integer id) {
+        Optional<Pedido> pedido = pedidoRepository.findById(id);
+        return pedido.orElse(null);
+    }
+
+    public Pedido guardar(Pedido pedido) {
+        return pedidoRepository.save(pedido);
+    }
+
+    public Pedido actualizar(Integer id, Pedido pedidoActualizado) {
+        if (pedidoRepository.existsById(id)) {
+            pedidoActualizado.setPedidoId(id);
+            return pedidoRepository.save(pedidoActualizado);
+        }
+        return null;
+    }
+
+    public boolean eliminar(Integer id) {
+        if (pedidoRepository.existsById(id)) {
+            pedidoRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    public List<Pedido> obtenerPorUsuario(Integer usuarioId) {
+        return pedidoRepository.findByUsuarioId(usuarioId);
+    }
+}
+
+// .../controller/PedidoController.java
+package com.ecomarket.orderservice.controller;
+
+import com.ecomarket.orderservice.model.Pedido;
+import com.ecomarket.orderservice.service.PedidoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/pedidos")
+public class PedidoController {
+
+    @Autowired
+    private PedidoService pedidoService;
+
+    @GetMapping
+    public ResponseEntity<List<Pedido>> obtenerTodos() {
+        return ResponseEntity.ok(pedidoService.obtenerTodos());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Pedido> obtenerPorId(@PathVariable Integer id) {
+        Pedido pedido = pedidoService.buscarPorId(id);
+        if (pedido != null) {
+            return ResponseEntity.ok(pedido);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Pedido> crear(@RequestBody Pedido pedido) {
+        Pedido nuevoPedido = pedidoService.guardar(pedido);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoPedido);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Pedido> actualizar(@PathVariable Integer id, @RequestBody Pedido pedido) {
+        Pedido actualizado = pedidoService.actualizar(id, pedido);
+        if (actualizado != null) {
+            return ResponseEntity.ok(actualizado);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        boolean eliminado = pedidoService.eliminar(id);
+        if (eliminado) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<List<Pedido>> obtenerPorUsuario(@PathVariable Integer usuarioId) {
+        List<Pedido> pedidos = pedidoService.obtenerPorUsuario(usuarioId);
+        return ResponseEntity.ok(pedidos);
+    }
+}
+
+// .../assembler/PedidoModelAssembler.java
+// (Ejemplo de clase assembler para HATEOAS, si usas HATEOAS)
+package com.ecomarket.orderservice.assembler;
+
+import com.ecomarket.orderservice.controller.PedidoController;
+import com.ecomarket.orderservice.model.Pedido;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.RepresentationModelAssembler;
+import org.springframework.stereotype.Component;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
+@Component
+public class PedidoModelAssembler implements RepresentationModelAssembler<Pedido, EntityModel<Pedido>> {
+    @Override
+    public EntityModel<Pedido> toModel(Pedido pedido) {
+        return EntityModel.of(pedido,
+                linkTo(methodOn(PedidoController.class).obtenerPorId(pedido.getPedidoId())).withSelfRel(),
+                linkTo(methodOn(PedidoController.class).obtenerTodos()).withRel("pedidos"));
+    }
+}
+
+// OrderServiceApplication.java
+package com.ecomarket.orderservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class OrderServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+}
+
+// application.properties
+
+spring.application.name=order-service
+server.port=8092
+spring.jpa.defer-datasource-initialization=true
+spring.datasource.url=jdbc:oracle:thin:@ecomarket_high?TNS_ADMIN=(ruta de la wallet en tu pc)
+spring.datasource.username=ADMIN
+spring.datasource.password=@Ecomarket25
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.OracleDialect
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=update
+spring.sql.init.mode=always
+spring.jpa.properties.hibernate.format_sql=true
+
+// data.sql
+
+-- Insertamos pedidos de ejemplo
+INSERT INTO pedido (usuario_id, fecha_pedido, estado) VALUES (1, CURRENT_TIMESTAMP, 'PENDIENTE');
+INSERT INTO pedido (usuario_id, fecha_pedido, estado) VALUES (2, CURRENT_TIMESTAMP, 'ENVIADO');
+
+// pom.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.4.5</version>
+    <relativePath/>
+  </parent>
+  <groupId>com.ecomarket</groupId>
+  <artifactId>order-service</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>order-service</name>
+  <description>Microservicio para gestión de pedidos de EcoMarket SPA</description>
+  <properties>
+    <java.version>17</java.version>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc8</artifactId>
+      <version>19.19.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

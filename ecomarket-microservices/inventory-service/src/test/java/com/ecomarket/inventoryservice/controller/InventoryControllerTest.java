@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @WebMvcTest(InventoryController.class)
@@ -43,38 +44,43 @@ public class InventoryControllerTest {
                 .andExpect(jsonPath("$.quantity").value(10));
     }
 
-    @Test
-    void testIsInStockTrue() throws Exception {
-        Product product = new Product();
-        product.setId("1");
-        product.setQuantity(5);
+@Test
+void testIsInStockTrue() throws Exception {
+    Product product = new Product();
+    product.setId("1");
+    product.setQuantity(5);
 
-        when(repo.findById("1")).thenReturn(Optional.of(product));
+    when(repo.findById("1")).thenReturn(Optional.of(product));
 
-        mockMvc.perform(get("/inventory/1"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("true"));
-    }
+    mockMvc.perform(get("/inventory/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value("1"))
+            .andExpect(jsonPath("$.quantity").value(5))
+            .andExpect(jsonPath("$._links.self.href").exists())
+            .andExpect(jsonPath("$._links.isInStock.href").exists());
+}
 
-    @Test
-    void testIsInStockFalse() throws Exception {
-        Product product = new Product();
-        product.setId("2");
-        product.setQuantity(0);
+@Test
+void testIsInStockFalse() throws Exception {
+    Product product = new Product();
+    product.setId("2");
+    product.setQuantity(0);
 
-        when(repo.findById("2")).thenReturn(Optional.of(product));
+    when(repo.findById("2")).thenReturn(Optional.of(product));
 
-        mockMvc.perform(get("/inventory/2"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("false"));
-    }
+    mockMvc.perform(get("/inventory/2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value("2"))
+            .andExpect(jsonPath("$.quantity").value(0))
+            .andExpect(jsonPath("$._links.self.href").exists())
+            .andExpect(jsonPath("$._links.isInStock.href").exists());
+}
 
-    @Test
-    void testIsInStockNotFound() throws Exception {
-        when(repo.findById("3")).thenReturn(Optional.empty());
+@Test
+void testIsInStockNotFound() throws Exception {
+    when(repo.findById("3")).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/inventory/3"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("false"));
-    }
+    mockMvc.perform(get("/inventory/3"))
+            .andExpect(status().isNotFound());
+}
 }

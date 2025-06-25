@@ -36,7 +36,7 @@ class NotificationControllerTest {
         requestBody.put("productName", faker.food().ingredient()); // válido
         requestBody.put("stock", 10); // stock bajo
 
-        mockMvc.perform(post("/api/v1/notifications/stock-alert")
+        mockMvc.perform(post("/api/v2/notifications/stock-alert")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isOk());
@@ -49,7 +49,7 @@ class NotificationControllerTest {
         requestBody.put("productName", faker.food().ingredient()); // válido
         requestBody.put("stock", 200); // stock alto
 
-        mockMvc.perform(post("/api/v1/notifications/stock-alert")
+        mockMvc.perform(post("/api/v2/notifications/stock-alert")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isOk());

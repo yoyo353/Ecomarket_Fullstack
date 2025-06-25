@@ -1,4 +1,3 @@
-
 package com.ecomarket.productservice.repository;
 
 import com.ecomarket.productservice.model.Producto;
@@ -15,11 +14,11 @@ public interface ProductRepository extends JpaRepository<Producto, Integer> {
     
     List<Producto> findByEsEcologico(Boolean esEcologico);
     
-    List<Producto> findByCategoriaId(Long categoriaId);
+    List<Producto> findByCategoriaId(Integer categoriaId);
     
     List<Producto> findByEstado(String estado);
     
-    List<Producto> findByProveedorPrincipalId(Long proveedorPrincipalId);
+    List<Producto> findByProveedorPrincipalId(Integer proveedorPrincipalId);
     
     List<Producto> findByPrecioUnitarioBetween(Double precioMin, Double precioMax);
     

@@ -66,7 +66,7 @@ public class ProductoService {
 
     // Productos por categoría
     public List<Producto> obtenerPorCategoria(Integer categoriaId) {
-        return productRepository.findByCategoriaId(categoriaId.longValue());
+        return productRepository.findByCategoriaId(categoriaId);
     }
 }
 

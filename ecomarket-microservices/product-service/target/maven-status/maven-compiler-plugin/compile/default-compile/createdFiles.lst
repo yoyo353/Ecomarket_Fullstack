@@ -1,0 +1,7 @@
+com\ecomarket\productservice\controller\ProductoController.class
+com\ecomarket\productservice\ProductServiceApplication.class
+com\ecomarket\productservice\service\ProductoService.class
+com\ecomarket\productservice\repository\ProductRepository.class
+com\ecomarket\productservice\config\SwaggerConfig.class
+com\ecomarket\productservice\model\Producto.class
+com\ecomarket\productservice\DataLoader.class

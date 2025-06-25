@@ -1,4 +1,5 @@
 package com.ecomarket.notificationservice.model;
+
 public class DeliveryStatusRequest {
 
     private String productId;
